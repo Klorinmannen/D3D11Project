@@ -19,7 +19,7 @@ using namespace DirectX;
 class RenderEngine
 { 
 private:
-	//D3D11 Stuff
+	//D3D11 data
 	IDXGISwapChain * c_swapChain;
 	ID3D11Device * c_device;
 	ID3D11DeviceContext * c_deviceContext;
@@ -28,6 +28,7 @@ private:
 	//Variables
 	XMMATRIX xm_view;
 	XMMATRIX xm_projection;
+	XMMATRIX xm_orthoProj;
 	XMFLOAT3X3 xmf_view;
 	XMFLOAT3X3 xmf_projection;
 	

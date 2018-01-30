@@ -3,9 +3,7 @@
 RenderEngine::RenderEngine()
 {
 	/*
-	compile shaders
-	
-
+	compile shaders etc etc
 
 	*/
 }
