@@ -1,5 +1,6 @@
 #pragma once
 #include "Drawable.h"
+#include "Camera.h"
 #include <DirectXMath.h>
 #include <Windows.h>
 #include <d3d11.h>
@@ -25,9 +26,13 @@ private:
 
 private:
 	//Variables
+	XMMATRIX xm_view;
+	XMMATRIX xm_projection;
 	XMFLOAT3X3 xmf_view;
 	XMFLOAT3X3 xmf_projection;
 	
+	Camera camera;
+
 	HWND wndHandle;
 
 private:

@@ -8,11 +8,21 @@ En klass som beskriver geometrin som ska ritas ut
 class Geometry : public Drawable
 {
 public:
+	//Variables
+	XMMATRIX xm_world;
 	XMFLOAT3X3 xmf_world;
+
+private:
+	//D3D11 data
+	ID3D11Buffer * vBuffer;
+	ID3D11Buffer * iBuffer;
+
+private:
+	//functions
 
 
 private:
-
+	//Vertex data
 	struct Vertex
 	{
 		XMFLOAT3 v_pos; //xyz
