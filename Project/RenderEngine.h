@@ -5,6 +5,7 @@
 #include <Windows.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
+#include <vector>
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment (lib, "d3dcompiler.lib")
@@ -23,6 +24,7 @@ private:
 	IDXGISwapChain * c_swapChain;
 	ID3D11Device * c_device;
 	ID3D11DeviceContext * c_deviceContext;
+	std::vector<ID3D11RenderTargetView*> c_buffersRTV;
 
 private:
 	//Variables
@@ -32,19 +34,27 @@ private:
 	XMFLOAT3X3 xmf_view;
 	XMFLOAT3X3 xmf_projection;
 	
+	const int HEIGHT = 680;
+	const int WIDTH = 680;
+	int RTVs = 6;
 	Camera camera;
 
-	HWND wndHandle;
+	HWND windowHandle;
 
 private:
 	//functions
 	void createShaders();
-	void createWindow();
-	void initiate();
+	bool createWindow(HINSTANCE hInstance, int nCmdShow);
+	bool initiateEngine();
+	bool setupRTVs();
+	bool setupDepthStencil();
+	bool setupRasterizer();
+	bool setCBs();
+	void windowProc();
 
 public:
 
-	RenderEngine();
+	RenderEngine(HINSTANCE hInstance, int nCmdShow);
 	~RenderEngine();
 
 	void Draw(Drawable* objectToRender); // draw called object

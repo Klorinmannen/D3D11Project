@@ -5,7 +5,7 @@
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
 {
 
-	RenderEngine Engine;
+	RenderEngine Engine(hInstance, nCmdShow);
 	GeometryHandler handler(&Engine);
 
 }
