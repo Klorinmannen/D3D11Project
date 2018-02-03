@@ -1,12 +1,5 @@
 #include "RenderEngine.h"
 
-void RenderEngine::createShaders()
-{
-	/*
-	compile shaders etc etc
-
-	*/
-}
 
 bool RenderEngine::createWindow(HINSTANCE hInstance, int nCmdShow)
 {
@@ -74,6 +67,15 @@ bool RenderEngine::initiateEngine()
 													&this->device,
 													NULL,
 													&this->deviceContext);
+	if (FAILED(hresult))
+	{
+		return false;
+	}
+
+	//MSDN example
+	//used to set the backbuffer at the OMS stage
+	this->swapChain->GetBuffer(0, __uuidof(this->back_buffer_texture), reinterpret_cast<void**>(&this->back_buffer_texture));
+	hresult = this->device->CreateRenderTargetView(this->back_buffer_texture, NULL, &this->back_buffer_view);
 	if (FAILED(hresult))
 	{
 		return false;
@@ -293,6 +295,15 @@ bool RenderEngine::setupRasterizer()
 	return true;
 }
 
+bool RenderEngine::createCBs()
+{
+	//krakens allmighty constant buffers touch with care
+
+
+
+	return false;
+}
+
 void RenderEngine::setupOMS()
 {
 	this->deviceContext->RSSetState(this->RSState);
@@ -321,6 +332,8 @@ RenderEngine::RenderEngine(HINSTANCE hInstance, int nCmdShow)
 	
 	this->initiateEngine();
 	this->createWindow(hInstance, nCmdShow);
+
+	this->deferred_shading = new DeferredShaders(this->device);
 }
 
 RenderEngine::~RenderEngine()
@@ -332,7 +345,7 @@ RenderEngine::~RenderEngine()
 	*/
 }
 
-void RenderEngine::Draw(Drawable * objectToRender)
+void RenderEngine::Draw(const Drawable * objectToRender)
 {
 	/*
 	draw depending on object
