@@ -1,43 +1,9 @@
 #include "RenderEngine.h"
+#include "Terrain.h"
+#include "Geometry.h"
 
 
-bool RenderEngine::createWindow(HINSTANCE hInstance, int nCmdShow)
-{
-	//MSDN example creating a window
-	WNDCLASSEX wcx;
-	wcx.cbSize = sizeof(wcx);				//Size of struct
-	wcx.style = CS_HREDRAW | CS_VREDRAW;	//Redraw is size changes
-	wcx.lpfnWndProc = NULL;//&this->windowProc;		//A window procedure
-	wcx.hInstance = hInstance;				//Handle to program instance
-	wcx.lpszClassName = "D3D11Project";		//Name of windows class
-
-	if (!RegisterClassEx(&wcx))
-	{
-		return false;
-	}
-
-	this->windowHandle = CreateWindow(  "D3D11Project",
-										"D3D11Project",
-										WS_OVERLAPPEDWINDOW,
-										CW_USEDEFAULT,
-										CW_USEDEFAULT,
-										this->WIDTH,
-										this->HEIGHT,
-										NULL,
-										NULL,
-										hInstance,
-										NULL);
-	if (!this->windowHandle)
-	{
-		return false;
-	}
-
-	ShowWindow(this->windowHandle, nCmdShow);
-
-	return true;
-}
-
-bool RenderEngine::initiateEngine()
+bool RenderEngine::initiateEngine(HWND handle)
 {
 	/* 
 	create swapchain
@@ -51,7 +17,7 @@ bool RenderEngine::initiateEngine()
 	bb_desc.BufferCount = 1;
 	bb_desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	bb_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	bb_desc.OutputWindow = this->windowHandle;
+	bb_desc.OutputWindow = handle;
 	bb_desc.SampleDesc.Count = 1;
 	bb_desc.Windowed = TRUE;
 
@@ -86,10 +52,11 @@ bool RenderEngine::initiateEngine()
 		//if shit goes haywire
 		return false;
 	}
-	this->setupRasterizer();
 	this->setupVP();
+	this->setupRasterizer();
 	this->setupOMS();
 
+	return true;
 }
 
 bool RenderEngine::setupRTVs()
@@ -345,19 +312,6 @@ bool RenderEngine::createCBs()
 	return true;
 }
 
-LRESULT RenderEngine::windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	//assignment two..
-	switch (message)
-	{
-	case WM_DESTROY:
-		PostQuitMessage(0);
-		break;
-	}
-
-	return DefWindowProc(hWnd, message, wParam, lParam);
-}
-
 void RenderEngine::setupOMS()
 {
 	this->deviceContext->RSSetState(this->RSState);
@@ -369,7 +323,7 @@ void RenderEngine::setupOMS()
 void RenderEngine::setMatrixes()
 {
 	//Projection
-	this->m_wvp.projection = XMMatrixPerspectiveFovLH(0.0f, this->WIDTH / this->HEIGHT, 0.1f, 20.0f);
+	this->m_wvp.projection = XMMatrixPerspectiveFovLH(0.0f, (float)this->WIDTH / (float)this->HEIGHT, 0.1f, 20.0f);
 	this->m_wvp.view = this->camera.getView(); //camera view matrix
 	this->m_wvp.world = XMMatrixRotationY(0.0f); //gör inget alls
 	this->m_wvp.wvp = this->m_wvp.world * this->m_wvp.view * this->m_wvp.projection; // world*view*proj
@@ -412,7 +366,7 @@ void RenderEngine::clearRT()
 	//clear the rendertargets before drawing with some color
 	for (size_t i = 0; i < this->VIEW_COUNT; i++)
 	{
-		this->deviceContext->ClearRenderTargetView(this->RTViews[i], Colors::white);
+		this->deviceContext->ClearRenderTargetView(this->RTViews[i], this->black);
 	}
 	this->deviceContext->ClearDepthStencilView(this->depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
 }
@@ -469,13 +423,18 @@ void RenderEngine::setDrawCall(int nr_verticies)
 	this->updateShaders(RenderEngine::Lightning_pass);
 	this->deviceContext->OMSetRenderTargets(1, &this->back_buffer_view, this->depthStencilView);
 	this->deviceContext->DrawIndexed(nr_verticies, 0, 0);
+
+	this->swapChain->Present(0, 0);
 }
 
-RenderEngine::RenderEngine(HINSTANCE hInstance, int nCmdShow)
+RenderEngine::RenderEngine(HWND handle, int WIDHT, int HEIGHT)
 {
 	this->swapChain = nullptr;
 	this->device = nullptr;
 	this->deviceContext = nullptr;
+
+	this->WIDTH = WIDHT;
+	this->HEIGHT = HEIGHT;
 
 	//initiate vectors
 	ID3D11Texture2D* t_entry = nullptr;
@@ -487,11 +446,7 @@ RenderEngine::RenderEngine(HINSTANCE hInstance, int nCmdShow)
 		this->RTViews.push_back(rtv_entry);
 		this->SRViews.push_back(srv_entry);
 	}
-	
-	
-	this->initiateEngine();
-	this->createWindow(hInstance, nCmdShow);
-
+	this->initiateEngine(handle);
 	this->deferred_shading = new DeferredShaders(this->device);
 	this->setMatrixes();
 	this->createCBs();
@@ -541,4 +496,9 @@ void RenderEngine::Draw(Geometry * in_geometry)
 	this->updateBuffers(in_geometry->getVertexBuffer(), in_geometry->getIndexBuffer(), in_geometry->getSizeOfVertex());
 	this->layoutTopology(in_geometry->getTopology(), in_geometry->getLayout());
 	this->setDrawCall(in_geometry->getNrOfVertices());
+}
+
+ID3D11Device * RenderEngine::getDevice()
+{
+	return this->device;
 }

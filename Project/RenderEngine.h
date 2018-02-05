@@ -1,12 +1,10 @@
-#pragma once
 #ifndef RenderEngine_H
 #define RenderEngine_H
 
-#include "Geometry.h"
-#include "Terrain.h"
+#include "Settings.h"
 #include "Camera.h"
 #include "DeferredShaders.h"
-#include <Windows.h>
+#include <windows.h>
 #include <vector>
 #include "Light.h"
 
@@ -18,6 +16,9 @@ Engine using deferred rendering
 
 using namespace DirectX;
 
+class Terrain;
+class Geometry;
+
 class RenderEngine
 { 
 private:
@@ -25,8 +26,8 @@ private:
 
 	bool useRastBackCull = true;
 
-	const int HEIGHT = 680;
-	const int WIDTH = 680;
+	int HEIGHT;
+	int WIDTH;
 	const int VIEW_COUNT = 3;
 
 	enum pass{Geometry_pass, Lightning_pass};
@@ -46,8 +47,8 @@ private:
 	DeferredShaders * deferred_shading;
 	Light lights;
 
+	float black[4] = {0 , 0, 0, 1};
 
-	HWND windowHandle;
 private:
 	//D3D11 data
 
@@ -77,14 +78,14 @@ private:
 
 private:
 	//start-up functions
-	bool createWindow(HINSTANCE hInstance, int nCmdShow);
-	bool initiateEngine();
+	bool createWindow(HINSTANCE &hInstance, int nCmdShow);
+	bool initiateEngine(HWND handle);
 	bool setupRTVs();
 	void setupVP();
 	bool setupDepthStencilBuffer();
 	bool setupRasterizer();
 	bool createCBs();
-	LRESULT CALLBACK windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+	LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	void setupOMS();
 	void setMatrixes();
 
@@ -98,12 +99,13 @@ private:
 	void setDrawCall(int nr_verticies);
 public:
 
-	RenderEngine(HINSTANCE hInstance, int nCmdShow);
+	RenderEngine(HWND wndHandle, int WIDTH, int HEIGHT);
 	~RenderEngine();
 
 	void Draw(Terrain * in_terrain); // draw called object
 	void Draw(Geometry * in_geometry);
 
+	ID3D11Device* getDevice();
 };
 
 #endif

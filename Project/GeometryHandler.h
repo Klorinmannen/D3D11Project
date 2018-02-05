@@ -1,5 +1,6 @@
 #pragma once
-#include"Drawable.h"
+#include"Geometry.h"
+#include "Terrain.h"
 #include <vector>
 
 /*
@@ -12,11 +13,12 @@ class GeometryHandler
 {
 
 private:
-	std::vector<Drawable*> drawableObjects; //holds Geometry objects
-	
-
+	std::vector<Geometry*> GeometryObjects; //holds Geometry objects
+	Terrain* terrainObj;
+	RenderEngine* engine;
 public:
 	GeometryHandler(RenderEngine* engine);
 	~GeometryHandler();
 
+	void update();
 };

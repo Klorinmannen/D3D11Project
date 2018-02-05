@@ -21,14 +21,14 @@ private:
 public:
 	//Vertex data
 	int* indexArray;
-	PC_Vertex* vertices; //dynamic allocated array of verticies
-	void setVertexArray(PC_Vertex* in_array, int nr_vertex);
+	Structs::PC_Vertex* vertices; //dynamic allocated array of verticies
+	void setVertexArray(Structs::PC_Vertex* in_array, int nr_vertex);
 	void setIndexArray(int* in_array);
 	void setTopology(int in_topology);
 	void setLayout(int in_layout);
 
 public:
-	Geometry(RenderEngine* engine); //Render engine is passed on to parent
+	Geometry(RenderEngine * engine); //Render engine is passed on to parent
 	~Geometry();
 
 	void Draw(); //implementation av renderEngines ->Draw();

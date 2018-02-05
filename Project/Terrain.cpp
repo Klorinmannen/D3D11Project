@@ -1,6 +1,7 @@
 #include"Terrain.h"
 
-Terrain::Terrain() {
+Terrain::Terrain(RenderEngine * engine) : Drawable(engine)
+{
 
 	this->nrOfFaces = 0;
 	this->nrOfVertices = 0;
@@ -294,7 +295,7 @@ int Terrain::getNrOfFaces(void) const {
 
 }
 
-int Terrain::getNrOfVertices(void) const {
+int Terrain::getNrOfVertices(void) {
 
 	return this->nrOfVertices;
 
@@ -314,7 +315,7 @@ ID3D11Buffer* Terrain::getIndexBuffer() {
 
 float Terrain::getSizeOfVertex()
 {
-	return sizeof(this->vert_struct);
+	return sizeof(Vertex);
 }
 
 int Terrain::getTopology()

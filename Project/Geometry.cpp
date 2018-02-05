@@ -1,6 +1,6 @@
 #include "Geometry.h"
 
-void Geometry::setVertexArray(PC_Vertex * in_array, int nr_vertex)
+void Geometry::setVertexArray(Structs::PC_Vertex * in_array, int nr_vertex)
 {
 	this->vertices = in_array;
 	this->vertex_number = nr_vertex;
@@ -28,7 +28,7 @@ bool Geometry::createBuffers()
 {
 	D3D11_BUFFER_DESC buffer_desc;
 	ZeroMemory(&buffer_desc, sizeof(buffer_desc));
-	buffer_desc.ByteWidth = sizeof(PC_Vertex);
+	buffer_desc.ByteWidth = sizeof(Structs::PC_Vertex);
 	buffer_desc.Usage = D3D11_USAGE_DYNAMIC;
 	buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -41,7 +41,7 @@ bool Geometry::createBuffers()
 	data.SysMemPitch = 0;
 	data.SysMemSlicePitch = 0;
 
-	HRESULT hResult = this->device->CreateBuffer(&buffer_desc, &data, &this->vertexBuffer);
+	HRESULT hResult = this->renderEngine->getDevice()->CreateBuffer(&buffer_desc, &data, &this->vertexBuffer);
 	if (FAILED(hResult))
 	{
 		return false;
@@ -60,12 +60,12 @@ bool Geometry::createBuffers()
 	data.SysMemPitch = 0;
 	data.SysMemSlicePitch = 0;
 
-	hResult = this->device->CreateBuffer(&buffer_desc, &data, &this->indexBuffer);
+	hResult = this->renderEngine->getDevice()->CreateBuffer(&buffer_desc, &data, &this->indexBuffer);
 	if (FAILED(hResult))
 	{
 		return false;
 	}
-
+	return true;
 }
 
 ID3D11Buffer * Geometry::getVertexBuffer()
@@ -80,7 +80,7 @@ ID3D11Buffer * Geometry::getIndexBuffer()
 
 float Geometry::getSizeOfVertex()
 {
-	return sizeof(PC_Vertex);
+	return sizeof(Structs::PC_Vertex);
 }
 
 int Geometry::getTopology()

@@ -3,9 +3,9 @@
 
 #include <DirectXMath.h>
 #include <d3d11.h>
-#include<stdio.h>
-#include<vector>
-#include"Drawable.h"
+#include <stdio.h>
+#include <vector>
+#include "Drawable.h"
 
 class Terrain : public Drawable {
 
@@ -25,14 +25,13 @@ private:
 		DirectX::XMFLOAT3 normal;
 
 	};
-	Vertex vert_struct;
 
 	HeightMap hM;
 	int nrOfFaces;
 	int nrOfVertices;
 
-	topology t_topology;
-	layout t_layout;
+	int t_topology;
+	int t_layout;
 
 	//Buffers
 	ID3D11Buffer* vBuffer;
@@ -40,7 +39,7 @@ private:
 
 public:
 
-	Terrain();
+	Terrain(RenderEngine* engine);
 	~Terrain();
 
 	bool loadHeightMap();
@@ -48,7 +47,7 @@ public:
 
 	//Get
 	int getNrOfFaces(void) const;
-	int getNrOfVertices(void) const;
+	int getNrOfVertices(void);
 	ID3D11Buffer* getVertexBuffer();
 	ID3D11Buffer* getIndexBuffer();
 	float getSizeOfVertex();

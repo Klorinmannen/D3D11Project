@@ -3,13 +3,10 @@
 
 
 #include"RenderEngine.h"
-#include "Terrain.h"
-#include"Settings.h"
 #include"IncludeDX11.h"
 /*
 Interface för objekt som ska kunnas ritas ut
 */
-
 
 class Drawable
 {

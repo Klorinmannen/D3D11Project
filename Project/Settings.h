@@ -1,20 +1,18 @@
-#ifndef settings_H
-#define settings_H
+#ifndef Settings_H
+#define Settings_H
 
+#include <DirectXMath.h>
 
 //add more if needed depending on objects etc etc.
 enum topology{TriangleList = 0};
 enum layout{PTN = 0, PC = 1, PN = 2};
 
-namespace Colors
+namespace Structs
 {
-	float white[4] = { 1, 1, 1, 1 };
-	float black[4] = { 0, 0, 0, 1 };
+	struct PC_Vertex
+	{
+		DirectX::XMVECTOR v_Pos;
+		DirectX::XMVECTOR v_Color;
+	};
 }
-
-struct PC_Vertex
-{
-	XMVECTOR v_Pos; 
-	XMVECTOR v_Color; 
-};
 #endif
