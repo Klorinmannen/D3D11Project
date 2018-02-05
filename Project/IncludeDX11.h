@@ -1,4 +1,6 @@
-#pragma once
+#ifndef INCLUDEDX11
+#define INCLUDEDX11
+
 #include<d3d11.h>
 #include<d3dcompiler.h>
 #include<Windows.h>
@@ -8,3 +10,5 @@
 #pragma comment (lib, "d3dcompiler.lib")
 
 using namespace DirectX;
+
+#endif // !INCLUDEDX11

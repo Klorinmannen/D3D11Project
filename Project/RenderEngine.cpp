@@ -7,7 +7,7 @@ bool RenderEngine::createWindow(HINSTANCE hInstance, int nCmdShow)
 	WNDCLASSEX wcx;
 	wcx.cbSize = sizeof(wcx);				//Size of struct
 	wcx.style = CS_HREDRAW | CS_VREDRAW;	//Redraw is size changes
-	wcx.lpfnWndProc = this->windowProc;		//A window procedure
+	wcx.lpfnWndProc = NULL;//&this->windowProc;		//A window procedure
 	wcx.hInstance = hInstance;				//Handle to program instance
 	wcx.lpszClassName = "D3D11Project";		//Name of windows class
 
@@ -247,7 +247,7 @@ bool RenderEngine::setupDepthStencilBuffer()
 	dsv_desc.Texture2D.MipSlice = 0;
 	dsv_desc.Flags = 0;
 
-	hResult = this->device->CreateDepthStencilView(this->depthStencil_texture, &dsv_desc, &this->DSView);
+	hResult = this->device->CreateDepthStencilView(this->depthStencil_texture, &dsv_desc, &this->depthStencilView);
 	if (FAILED(hResult))
 	{
 		return false;
@@ -298,18 +298,177 @@ bool RenderEngine::setupRasterizer()
 bool RenderEngine::createCBs()
 {
 	//krakens allmighty constant buffers touch with care
+	//wvp CB for VS
+	D3D11_BUFFER_DESC cb_desc;
+	ZeroMemory(&cb_desc, sizeof(cb_desc));
+	cb_desc.ByteWidth = sizeof(this->m_wvp);
+	cb_desc.Usage = D3D11_USAGE_DYNAMIC;
+	cb_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cb_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cb_desc.MiscFlags = 0;
+	cb_desc.StructureByteStride = 0;
 
+	D3D11_SUBRESOURCE_DATA data;
+	ZeroMemory(&data, sizeof(data));
+	data.pSysMem = &m_wvp;
+	data.SysMemPitch = 0;
+	data.SysMemSlicePitch = 0;
 
+	HRESULT hResult = this->device->CreateBuffer(&cb_desc, &data, &this->cb_matrixes);
+	if (FAILED(hResult))
+	{
+		return false;
+	}
+	this->deviceContext->VSSetConstantBuffers(0, 1, &this->cb_matrixes);
 
-	return false;
+	//light CB for PS
+	ZeroMemory(&cb_desc, sizeof(cb_desc));
+	
+	cb_desc.ByteWidth = sizeof(lights.c_light);
+	cb_desc.Usage = D3D11_USAGE_DYNAMIC;
+	cb_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cb_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cb_desc.MiscFlags = 0;
+	cb_desc.StructureByteStride = 0;
+
+	ZeroMemory(&data, sizeof(data));
+	data.pSysMem = this->lights.getLights();
+	data.SysMemPitch = 0;
+	data.SysMemSlicePitch = 0;
+
+	hResult = this->device->CreateBuffer(&cb_desc, &data, &this->cb_lights);
+	if (FAILED(hResult))
+	{
+		return false;
+	}
+	this->deviceContext->PSSetConstantBuffers(0, 1, &this->cb_lights);
+	return true;
+}
+
+LRESULT RenderEngine::windowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	//assignment two..
+	switch (message)
+	{
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+	}
+
+	return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
 void RenderEngine::setupOMS()
 {
 	this->deviceContext->RSSetState(this->RSState);
 	this->deviceContext->OMSetDepthStencilState(this->DSState, 1);
-	this->deviceContext->OMSetRenderTargets(this->VIEW_COUNT, this->RTViews.data(), this->DSView); 
 	this->deviceContext->RSSetViewports(1, &this->view_port);
+	this->deviceContext->PSSetShaderResources(0, this->VIEW_COUNT, this->SRViews.data());
+}
+
+void RenderEngine::setMatrixes()
+{
+	//Projection
+	this->m_wvp.projection = XMMatrixPerspectiveFovLH(0.0f, this->WIDTH / this->HEIGHT, 0.1f, 20.0f);
+	this->m_wvp.view = this->camera.getView(); //camera view matrix
+	this->m_wvp.world = XMMatrixRotationY(0.0f); //gör inget alls
+	this->m_wvp.wvp = this->m_wvp.world * this->m_wvp.view * this->m_wvp.projection; // world*view*proj
+}
+
+void RenderEngine::updateMatrixes()
+{
+	this->m_wvp.view = this->camera.getView();
+	this->m_wvp.world = XMMatrixRotationY(0.0f); //gör inget alls
+	this->m_wvp.wvp = this->m_wvp.world * this->m_wvp.view * this->m_wvp.projection; // world*view*proj
+}
+
+void RenderEngine::updateShaders(int in_pass)
+{
+	switch (in_pass)
+	{
+	case RenderEngine::Geometry_pass:
+		this->deviceContext->VSSetShader(this->deferred_shading->getGeoVS(), nullptr, 0);
+		this->deviceContext->PSSetShader(this->deferred_shading->getGeoPS(), nullptr, 0);
+		break;
+	case RenderEngine::Lightning_pass:
+		this->deviceContext->VSSetShader(this->deferred_shading->getLightVS(), nullptr, 0);
+		this->deviceContext->PSSetShader(this->deferred_shading->getLightPS(), nullptr, 0);
+		break;
+	}
+}
+
+void RenderEngine::updateBuffers(ID3D11Buffer * in_VertexBuffer, ID3D11Buffer * in_IndexBuffer, float size_of)
+{
+	UINT weirdoInt = (UINT)size_of;
+	UINT offset = 0.0f;
+
+	this->deviceContext->IASetVertexBuffers(0, 1, &in_VertexBuffer, &weirdoInt, &offset);
+	this->deviceContext->IASetIndexBuffer(in_IndexBuffer, DXGI_FORMAT_R32_UINT, offset);
+
+}
+
+void RenderEngine::clearRT()
+{
+	//clear the rendertargets before drawing with some color
+	for (size_t i = 0; i < this->VIEW_COUNT; i++)
+	{
+		this->deviceContext->ClearRenderTargetView(this->RTViews[i], Colors::white);
+	}
+	this->deviceContext->ClearDepthStencilView(this->depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
+}
+
+void RenderEngine::mapCBs()
+{
+	//maps the subresources of a constant buffer (locks it) and allows for rebinding 
+	//and Unmaps, Unlocks it for use
+	D3D11_MAPPED_SUBRESOURCE mappedResource;
+	ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+	this->deviceContext->Map(this->cb_matrixes, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+	memcpy(mappedResource.pData, &this->m_wvp, sizeof(m_wvp));
+	this->deviceContext->Unmap(this->cb_matrixes, 0);
+}
+
+void RenderEngine::layoutTopology(int in_topology, int in_layout)
+{
+	//changes topology and layout depending on the object
+	switch (in_topology)
+	{
+	case TriangleList:
+		this->deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		break;
+	}
+
+	switch (in_layout)
+	{
+	case PTN:
+		//Pos, TexCo, Normal
+		this->deviceContext->IASetInputLayout(this->deferred_shading->getPTNLayout());
+		break;
+	case PC:
+		//Pos, Color
+		this->deviceContext->IASetInputLayout(this->deferred_shading->getPCLayout());
+		break;
+	case PN:
+		//Pos, Normal
+		this->deviceContext->IASetInputLayout(this->deferred_shading->getPNLayout());
+		break;
+	}
+}
+
+void RenderEngine::setDrawCall(int nr_verticies)
+{
+	this->clearRT();
+	//geometry pass
+	//render to gbuffer needs matrixes cb, vss, pss
+	this->updateShaders(RenderEngine::Geometry_pass);
+	this->deviceContext->OMSetRenderTargets(this->VIEW_COUNT, this->RTViews.data(), this->depthStencilView);
+	this->deviceContext->DrawIndexed(nr_verticies, 0, 0);
+
+	//lightpass
+	//render to backbuffer
+	this->updateShaders(RenderEngine::Lightning_pass);
+	this->deviceContext->OMSetRenderTargets(1, &this->back_buffer_view, this->depthStencilView);
+	this->deviceContext->DrawIndexed(nr_verticies, 0, 0);
 }
 
 RenderEngine::RenderEngine(HINSTANCE hInstance, int nCmdShow)
@@ -334,6 +493,8 @@ RenderEngine::RenderEngine(HINSTANCE hInstance, int nCmdShow)
 	this->createWindow(hInstance, nCmdShow);
 
 	this->deferred_shading = new DeferredShaders(this->device);
+	this->setMatrixes();
+	this->createCBs();
 }
 
 RenderEngine::~RenderEngine()
@@ -343,15 +504,41 @@ RenderEngine::~RenderEngine()
 	Release all com-objects
 
 	*/
+	delete this->deferred_shading;
+	this->swapChain->Release();
+	this->device->Release();
+	this->deviceContext->Release();
+	this->back_buffer_texture->Release();
+	this->back_buffer_view->Release();
+	this->depthStencil_texture->Release();
+	this->depthStencilView->Release();
+	this->cb_lights->Release();
+	this->cb_matrixes->Release();
+
+	for (size_t i = 0; i < this->VIEW_COUNT; i++)
+	{
+		this->RTViews[i]->Release();
+		this->SRViews[i]->Release();
+		this->RTTextures[i]->Release();
+	}
+
 }
 
-void RenderEngine::Draw(const Drawable * objectToRender)
+void RenderEngine::Draw(Terrain * in_terrain)
 {
-	/*
-	draw depending on object
-	set buffers 
-	set topology
-	etc etc
-	*/
+	this->updateMatrixes();
+	this->mapCBs();
+	this->updateBuffers(in_terrain->getVertexBuffer(), in_terrain->getIndexBuffer(), in_terrain->getSizeOfVertex());
+	this->layoutTopology(in_terrain->getTopology(), in_terrain->getLayout());
+	this->setDrawCall(in_terrain->getNrOfVertices());
 
+}
+
+void RenderEngine::Draw(Geometry * in_geometry)
+{
+	this->updateMatrixes();
+	this->mapCBs();
+	this->updateBuffers(in_geometry->getVertexBuffer(), in_geometry->getIndexBuffer(), in_geometry->getSizeOfVertex());
+	this->layoutTopology(in_geometry->getTopology(), in_geometry->getLayout());
+	this->setDrawCall(in_geometry->getNrOfVertices());
 }
