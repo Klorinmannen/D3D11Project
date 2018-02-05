@@ -83,12 +83,12 @@ float Geometry::getSizeOfVertex()
 	return sizeof(PC_Vertex);
 }
 
-topology Geometry::getTopology()
+int Geometry::getTopology()
 {
 	return this->t_topology;
 }
 
-layout Geometry::getLayout()
+int Geometry::getLayout()
 {
 	return this->t_layout;
 }

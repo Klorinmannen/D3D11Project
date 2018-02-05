@@ -2,8 +2,8 @@
 #ifndef RenderEngine_H
 #define RenderEngine_H
 
-#include"IncludeDX11.h"
 #include "Geometry.h"
+#include "Terrain.h"
 #include "Camera.h"
 #include "DeferredShaders.h"
 #include <Windows.h>

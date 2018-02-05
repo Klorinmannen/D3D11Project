@@ -7,7 +7,7 @@
 #include<vector>
 #include"Drawable.h"
 
-class Terrain : public Drawable{
+class Terrain : public Drawable {
 
 private:
 
