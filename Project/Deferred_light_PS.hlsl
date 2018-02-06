@@ -5,14 +5,14 @@ cbuffer lights
 	float4 color; //w for intensity
 };
 
-texture2D 
+//ACQUIRE TEXTURES
+Texture2D NormalTexture : register(t0);
+Texture2D PositionTexture : register(t1);
 
-struct Vs_Output
+
+float4 Deferred_PS_Entry(in float4 Position_CS : SV_Position)
 {
-
-};
-
-Deferred_PS_Entry() : SV_Target
-{
-
+	//yadayada light ambient specular etc etc
+	 
+	return 
 }
