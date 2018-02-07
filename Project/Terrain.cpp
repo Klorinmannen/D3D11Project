@@ -1,8 +1,8 @@
 #include"Terrain.h"
 
-Terrain::Terrain(RenderEngine * engine) : Drawable(engine)
+Terrain::Terrain(ID3D11Device * device) : Drawable()
 {
-
+	this->device = device;
 	this->nrOfFaces = 0;
 	this->nrOfVertices = 0;
 
@@ -15,6 +15,7 @@ Terrain::Terrain(RenderEngine * engine) : Drawable(engine)
 
 	this->t_layout = layout::PN; //ändra när det är dags
 	this->t_topology = topology::TriangleList;
+	this->loadHeightMap();
 }
 
 Terrain::~Terrain() {
@@ -45,7 +46,7 @@ bool Terrain::loadHeightMap() {
 
 	if (file == nullptr) {
 
-		exit(-1);
+		exit(-1); //haha :D den lurar vem som helst
 
 	}
 	else {
@@ -107,9 +108,10 @@ bool Terrain::loadHeightMap() {
 
 	return result;
 
+
 }
 
-void Terrain::createBuffers(ID3D11Device* device) {
+void Terrain::createBuffers() {
 
 
 
@@ -267,7 +269,7 @@ void Terrain::createBuffers(ID3D11Device* device) {
 	ZeroMemory(&vBufferData, sizeof(vBufferData));
 
 	vBufferData.pSysMem = &vec[0];
-	device->CreateBuffer(&vBufferDesc, &vBufferData, &this->vBuffer);
+	this->device->CreateBuffer(&vBufferDesc, &vBufferData, &this->vBuffer);
 
 	//Create index buffer
 	D3D11_BUFFER_DESC iBufferDesc;
@@ -285,7 +287,7 @@ void Terrain::createBuffers(ID3D11Device* device) {
 	ZeroMemory(&iBufferData, sizeof(iBufferData));
 
 	iBufferData.pSysMem = &indices[0];
-	device->CreateBuffer(&iBufferDesc, &iBufferData, &this->iBuffer);
+	this->device->CreateBuffer(&iBufferDesc, &iBufferData, &this->iBuffer);
 
 }
 
@@ -328,7 +330,7 @@ int Terrain::getLayout()
 	return this->t_layout;
 }
 
-void Terrain::Draw()
+XMMATRIX Terrain::getWorldMatrix() const
 {
-	this->renderEngine->Draw(this);
+	return (DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixTranslation(-100.0f, -100.0f, -100.0f));
 }

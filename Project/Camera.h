@@ -43,7 +43,7 @@ public:
 	Camera();
 	~Camera();
 
-	void getInput(double time);
+	void getInput();
 	void update();
 	bool initDI(HINSTANCE hInst, HWND wHandle);
 

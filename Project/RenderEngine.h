@@ -1,6 +1,8 @@
 #ifndef RenderEngine_H
 #define RenderEngine_H
 
+#include "Geometry.h"
+#include "Terrain.h"
 #include "Settings.h"
 #include "Camera.h"
 #include "DeferredShaders.h"
@@ -16,19 +18,18 @@ Engine using deferred rendering
 
 using namespace DirectX;
 
-class Terrain;
-class Geometry;
-
 class RenderEngine
 { 
 private:
 	//Variables
 
-	bool useRastBackCull = true;
+	bool useRastBackCull = false;
 
 	int HEIGHT;
 	int WIDTH;
-	const int VIEW_COUNT = 3;
+	float nearZ = 0.1f;
+	float farZ = 1000.0f;
+	const int VIEW_COUNT = 2;
 
 	enum pass{Geometry_pass, Lightning_pass};
 
@@ -78,7 +79,6 @@ private:
 
 private:
 	//start-up functions
-	bool createWindow(HINSTANCE &hInstance, int nCmdShow);
 	bool initiateEngine(HWND handle);
 	bool setupRTVs();
 	void setupVP();
@@ -87,7 +87,7 @@ private:
 	bool createCBs();
 	LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	void setupOMS();
-	void setMatrixes();
+
 
 	//Render functions
 	void updateMatrixes();
@@ -99,9 +99,11 @@ private:
 	void setDrawCall(int nr_verticies);
 public:
 
-	RenderEngine(HWND wndHandle, int WIDTH, int HEIGHT);
+	RenderEngine(HWND wndHandle, HINSTANCE hInstance, int WIDTH, int HEIGHT);
 	~RenderEngine();
 
+	void setWorldMatrix(XMMATRIX world);
+	void update();
 	void Draw(Terrain * in_terrain); // draw called object
 	void Draw(Geometry * in_geometry);
 

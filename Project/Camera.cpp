@@ -38,7 +38,7 @@ Camera::~Camera() {
 
 }
 
-void Camera::getInput(double time) {
+void Camera::getInput() {
 
 	//Stores mouse/keyboard info
 	DIMOUSESTATE currentMouseState;

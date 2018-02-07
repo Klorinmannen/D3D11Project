@@ -1,11 +1,15 @@
-#include "GeometryHandler.h"
+#include"Geometry.h"
+#include"RenderEngine.h"
 #include "windows.h"
 
-const int HEIGHT = 1280;
-const int WIDTH = 720;
+const int HEIGHT = 600;
+const int WIDTH = 800;
 
 HWND InitWindow(HINSTANCE hInstance);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+
+void terrainPreSet(Terrain &terrain, RenderEngine &Engine);
+
 
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
@@ -13,12 +17,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 	MSG msg = { 0 };
 	HWND wndHandle = InitWindow(hInstance);
 
-	RenderEngine Engine(wndHandle, WIDTH, HEIGHT);
-	GeometryHandler handler(&Engine);
-	
+	RenderEngine Engine(wndHandle, hInstance, WIDTH, HEIGHT);
+	Terrain myTerrain(Engine.getDevice());
+	terrainPreSet(myTerrain, Engine);
 
 	if (wndHandle)
 	{
+		ShowWindow(wndHandle, nCmdShow);
 		while (WM_QUIT != msg.message)
 		{
 			if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
@@ -28,7 +33,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 			}
 			else
 			{
-				handler.update();
+				Engine.update();
+				Engine.Draw(&myTerrain);
 			}
 
 		}
@@ -45,7 +51,7 @@ HWND InitWindow(HINSTANCE hInstance)
 	wcex.style = CS_HREDRAW | CS_VREDRAW;
 	wcex.lpfnWndProc = WndProc;
 	wcex.hInstance = hInstance;
-	wcex.lpszClassName = "BTH_D3D_DEMO";
+	wcex.lpszClassName = "D3D11 Projekt";
 	if (!RegisterClassEx(&wcex))
 	{
 		DWORD dw = GetLastError();
@@ -55,8 +61,8 @@ HWND InitWindow(HINSTANCE hInstance)
 	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 
 	HWND handle = CreateWindow(
-								"BTH_D3D_DEMO",
-								"BTH Direct3D Demo",
+								"D3D11 Projekt",
+								"D3D Projekt Fönster",
 								WS_OVERLAPPEDWINDOW,
 								CW_USEDEFAULT,
 								CW_USEDEFAULT,
@@ -86,4 +92,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 
 	return DefWindowProc(hWnd, message, wParam, lParam);
+}
+
+void terrainPreSet(Terrain &terrain, RenderEngine &Engine)
+{
+	terrain.createBuffers();
+	Engine.setWorldMatrix(terrain.getWorldMatrix());
 }

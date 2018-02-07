@@ -37,13 +37,15 @@ private:
 	ID3D11Buffer* vBuffer;
 	ID3D11Buffer* iBuffer;
 
+	ID3D11Device * device;
+
 public:
 
-	Terrain(RenderEngine* engine);
+	Terrain(ID3D11Device * device);
 	~Terrain();
 
 	bool loadHeightMap();
-	void createBuffers(ID3D11Device* device);
+	void createBuffers();
 
 	//Get
 	int getNrOfFaces(void) const;
@@ -53,8 +55,7 @@ public:
 	float getSizeOfVertex();
 	int getTopology();
 	int getLayout();
-
-	void Draw();
+	XMMATRIX getWorldMatrix() const;
 };
 
 #endif // !TERRAIN_H

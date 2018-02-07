@@ -10,7 +10,6 @@ DeferredShaders::DeferredShaders(ID3D11Device * in_device)
 	{
 		//deliver krakens messages of destructive powers inherited from the ancient times of boat swallowing
 	}
-	this->createInputLayout();
 	this->createPixelShaders();
 	if (FAILED(this->hResult))
 	{
@@ -28,10 +27,12 @@ void DeferredShaders::createVertexShaders()
 {
 
 	this->compileGeometryShader(DeferredShaders::Vertex_S);
-	this->device->CreateVertexShader(this->shader_blob->GetBufferPointer(), 
-									this->shader_blob->GetBufferSize(),
-									NULL, 
-									&this->geometry_vertex_shader);
+	this->device->CreateVertexShader(this->shader_blob->GetBufferPointer(),
+		this->shader_blob->GetBufferSize(),
+		NULL,
+		&this->geometry_vertex_shader);
+
+	this->createInputLayout();
 	this->shader_blob->Release();
 
 	this->compileLightShader(DeferredShaders::Vertex_S);
@@ -39,6 +40,9 @@ void DeferredShaders::createVertexShaders()
 									this->shader_blob->GetBufferSize(),
 									NULL,
 									&this->light_vertex_shader);
+
+
+	this->createInputLayout();
 	this->shader_blob->Release();
 }
 
@@ -79,19 +83,9 @@ ID3D11PixelShader * DeferredShaders::getLightPS() const
 	return this->light_pixel_shader;
 }
 
-ID3D11InputLayout * DeferredShaders::getPTNLayout() const
-{
-	return this->inp_PTN_layout;
-}
-
 ID3D11InputLayout * DeferredShaders::getPNLayout() const
 {
 	return this->inp_PN_layout;
-}
-
-ID3D11InputLayout * DeferredShaders::getPCLayout() const
-{
-	return this->inp_PC_layout;
 }
 
 float DeferredShaders::getPTNSize() const
@@ -115,10 +109,10 @@ void DeferredShaders::compileGeometryShader(type in_type)
 	{
 	case DeferredShaders::Vertex_S:
 		this->hResult = D3DCompileFromFile(
-											L"Deferred_geometry_VS.hlsl", 
+											L"Geometry_VS.hlsl", 
 											nullptr,		
 											nullptr,		
-											"Deferred_VS_Entry",		
+											"VS_Entry",		
 											"vs_5_0",		
 											D3DCOMPILE_DEBUG,	
 											0,				
@@ -128,10 +122,10 @@ void DeferredShaders::compileGeometryShader(type in_type)
 		break;
 	case DeferredShaders::Pixel_S:
 		this->hResult = D3DCompileFromFile(
-											L"Deferred_geometry_PS.hlsl",
+											L"Geometry_PS.hlsl",
 											nullptr,
 											nullptr,
-											"Deferred_PS_Entry",
+											"PS_Entry",
 											"ps_5_0",
 											D3DCOMPILE_DEBUG,
 											0,
@@ -147,10 +141,10 @@ void DeferredShaders::compileLightShader(type in_type)
 	switch (in_type)
 	{
 	case DeferredShaders::Vertex_S:
-		this->hResult = D3DCompileFromFile( L"Deferred_light_VS.hlsl",
+		this->hResult = D3DCompileFromFile( L"Light_VS.hlsl",
 											nullptr,
 											nullptr,
-											"Deferred_VS_Entry",
+											"VS_Entry",
 											"vs_5_0",
 											D3DCOMPILE_DEBUG,
 											0,
@@ -159,10 +153,10 @@ void DeferredShaders::compileLightShader(type in_type)
 		);
 		break;
 	case DeferredShaders::Pixel_S:
-		this->hResult = D3DCompileFromFile( L"Deferred_light_PS.hlsl",
+		this->hResult = D3DCompileFromFile( L"Light_PS.hlsl",
 											nullptr,
 											nullptr,
-											"Deferred_PS_Entry",
+											"PS_Entry",
 											"ps_5_0",
 											D3DCOMPILE_DEBUG,
 											0,
@@ -175,94 +169,26 @@ void DeferredShaders::compileLightShader(type in_type)
 
 void DeferredShaders::createInputLayout()
 {
-	//Pos-Tex-Normal layout
-	D3D11_INPUT_ELEMENT_DESC inp_PTN_desc[] = {
-											{
-												"POSITION",		
-												0,				
-												DXGI_FORMAT_R32G32B32_FLOAT, 
-												0,							 
-												0,							
-												D3D11_INPUT_PER_VERTEX_DATA,
-												0							 
-											},
-											{
-												"TEXCOORD",
-												0,				
-												DXGI_FORMAT_R32G32_FLOAT,
-												0,
-												12,							
-												D3D11_INPUT_PER_VERTEX_DATA,
-												0
-											},
-											{
-												"NORMAL",
-												0,
-												DXGI_FORMAT_R32G32B32_FLOAT,
-												0,
-												20,
-												D3D11_INPUT_PER_VERTEX_DATA,
-											}
-
-										};
-	this->ptn_size = 8.0f;
-	this->device->CreateInputLayout(inp_PTN_desc,
-									ARRAYSIZE(inp_PTN_desc),
-									this->shader_blob, 
-									sizeof(this->shader_blob), 
-									&this->inp_PTN_layout);
-	
-	//Pos-Normal layout
-	D3D11_INPUT_ELEMENT_DESC inp_PN_desc[] = {
-											{
-												"POSITION",
-												0,
-												DXGI_FORMAT_R32G32B32_FLOAT,
-												0,
-												0,
-												D3D11_INPUT_PER_VERTEX_DATA,
-												0
-											},
-											{
-												"NORMAL",
-												0,
-												DXGI_FORMAT_R32G32B32_FLOAT,
-												0,
-												12,
-												D3D11_INPUT_PER_VERTEX_DATA,
-											}
-										};
-	this->pn_size = 6.0f;
-	this->device->CreateInputLayout(inp_PN_desc,
-									ARRAYSIZE(inp_PN_desc),
-									this->shader_blob,
-									sizeof(this->shader_blob),
-									&this->inp_PN_layout);
-
-	D3D11_INPUT_ELEMENT_DESC inp_PC_desc[] = {
-											{
-												"POSITION",
-												0,
-												DXGI_FORMAT_R32G32B32_FLOAT,
-												0,
-												0,
-												D3D11_INPUT_PER_VERTEX_DATA,
-												0
-											},
-											{
-												"COLOR",
-												0,
-												DXGI_FORMAT_R32G32B32A32_FLOAT,
-												0,
-												12,
-												D3D11_INPUT_PER_VERTEX_DATA,
-											}
+	D3D11_INPUT_ELEMENT_DESC dsc[] = {
+										{
+											"POSITION",
+											0,
+											DXGI_FORMAT_R32G32B32_FLOAT,
+											0,
+											0,
+											D3D11_INPUT_PER_VERTEX_DATA,
+											0
+										},
+										{
+											"NORMAL",
+											0,
+											DXGI_FORMAT_R32G32B32_FLOAT,
+											0,
+											12,
+											D3D11_INPUT_PER_VERTEX_DATA,
+											0
+										}
 	};
-	this->pc_size = 6.0f;
-	this->device->CreateInputLayout(inp_PC_desc,
-									ARRAYSIZE(inp_PC_desc),
-									this->shader_blob,
-									sizeof(this->shader_blob),
-									&this->inp_PC_layout);
 
+	this->device->CreateInputLayout(dsc, ARRAYSIZE(dsc), this->shader_blob->GetBufferPointer(), this->shader_blob->GetBufferSize(), &this->inp_PN_layout);
 }

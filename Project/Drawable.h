@@ -1,9 +1,7 @@
 #ifndef DRAWABLE_H
 #define DRAWABLE_H
-
-
-#include"RenderEngine.h"
 #include"IncludeDX11.h"
+#include "Settings.h"
 /*
 Interface för objekt som ska kunnas ritas ut
 */
@@ -11,13 +9,10 @@ Interface för objekt som ska kunnas ritas ut
 class Drawable
 {
 public:
-	Drawable(RenderEngine* engine);
+	Drawable();
 	~Drawable();
 
 protected:
-	RenderEngine * renderEngine;
-
-	virtual void Draw() = 0;
 	virtual ID3D11Buffer* getVertexBuffer() = 0;
 	virtual ID3D11Buffer* getIndexBuffer() = 0;
 	virtual float getSizeOfVertex() = 0;

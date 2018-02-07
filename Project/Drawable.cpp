@@ -1,8 +1,7 @@
 #include "Drawable.h"
 
-Drawable::Drawable(RenderEngine* engine)
+Drawable::Drawable()
 {
-	this->renderEngine = engine;
 }
 
 Drawable::~Drawable()

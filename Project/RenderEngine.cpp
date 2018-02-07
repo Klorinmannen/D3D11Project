@@ -1,7 +1,4 @@
 #include "RenderEngine.h"
-#include "Terrain.h"
-#include "Geometry.h"
-
 
 bool RenderEngine::initiateEngine(HWND handle)
 {
@@ -47,7 +44,12 @@ bool RenderEngine::initiateEngine(HWND handle)
 		return false;
 	}
 
-	if (this->setupRTVs() && this->setupDepthStencilBuffer())
+	if (!this->setupDepthStencilBuffer())
+	{
+		return false;
+	}
+
+	if (!this->setupRTVs())
 	{
 		//if shit goes haywire
 		return false;
@@ -145,6 +147,7 @@ void RenderEngine::setupVP()
 	this->view_port.MaxDepth = 1.0f;
 	this->view_port.TopLeftX = 0.0f;
 	this->view_port.TopLeftY = 0.0f;
+	this->deviceContext->RSSetViewports(1, &this->view_port);
 }
 
 bool RenderEngine::setupDepthStencilBuffer()
@@ -199,6 +202,8 @@ bool RenderEngine::setupDepthStencilBuffer()
 	depth_texture_desc.ArraySize = 1;
 	depth_texture_desc.CPUAccessFlags = 0;
 	depth_texture_desc.MiscFlags = 0;
+	depth_texture_desc.SampleDesc.Count = 1;
+	depth_texture_desc.SampleDesc.Quality = 0;
 
 	hResult = this->device->CreateTexture2D(&depth_texture_desc, NULL, &this->depthStencil_texture);
 	if (FAILED(hResult))
@@ -308,7 +313,7 @@ bool RenderEngine::createCBs()
 	{
 		return false;
 	}
-	this->deviceContext->PSSetConstantBuffers(0, 1, &this->cb_lights);
+	this->deviceContext->PSSetConstantBuffers(0, 2, &this->cb_lights);
 	return true;
 }
 
@@ -316,17 +321,22 @@ void RenderEngine::setupOMS()
 {
 	this->deviceContext->RSSetState(this->RSState);
 	this->deviceContext->OMSetDepthStencilState(this->DSState, 1);
-	this->deviceContext->RSSetViewports(1, &this->view_port);
 	this->deviceContext->PSSetShaderResources(0, this->VIEW_COUNT, this->SRViews.data());
 }
 
-void RenderEngine::setMatrixes()
+void RenderEngine::setWorldMatrix(XMMATRIX world)
 {
 	//Projection
-	this->m_wvp.projection = XMMatrixPerspectiveFovLH(0.0f, (float)this->WIDTH / (float)this->HEIGHT, 0.1f, 20.0f);
-	this->m_wvp.view = this->camera.getView(); //camera view matrix
-	this->m_wvp.world = XMMatrixRotationY(0.0f); //gör inget alls
+	this->m_wvp.projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, this->WIDTH / this->HEIGHT, this->nearZ, this->farZ);
+	this->m_wvp.view = this->camera.getView();
+	this->m_wvp.world = world;
 	this->m_wvp.wvp = this->m_wvp.world * this->m_wvp.view * this->m_wvp.projection; // world*view*proj
+}
+
+void RenderEngine::update()
+{
+	this->camera.getInput();
+	this->camera.update();
 }
 
 void RenderEngine::updateMatrixes()
@@ -366,7 +376,7 @@ void RenderEngine::clearRT()
 	//clear the rendertargets before drawing with some color
 	for (size_t i = 0; i < this->VIEW_COUNT; i++)
 	{
-		this->deviceContext->ClearRenderTargetView(this->RTViews[i], this->black);
+		this->deviceContext->ClearRenderTargetView(this->back_buffer_view, this->black);
 	}
 	this->deviceContext->ClearDepthStencilView(this->depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
 }
@@ -394,14 +404,6 @@ void RenderEngine::layoutTopology(int in_topology, int in_layout)
 
 	switch (in_layout)
 	{
-	case PTN:
-		//Pos, TexCo, Normal
-		this->deviceContext->IASetInputLayout(this->deferred_shading->getPTNLayout());
-		break;
-	case PC:
-		//Pos, Color
-		this->deviceContext->IASetInputLayout(this->deferred_shading->getPCLayout());
-		break;
 	case PN:
 		//Pos, Normal
 		this->deviceContext->IASetInputLayout(this->deferred_shading->getPNLayout());
@@ -415,7 +417,7 @@ void RenderEngine::setDrawCall(int nr_verticies)
 	//geometry pass
 	//render to gbuffer needs matrixes cb, vss, pss
 	this->updateShaders(RenderEngine::Geometry_pass);
-	this->deviceContext->OMSetRenderTargets(this->VIEW_COUNT, this->RTViews.data(), this->depthStencilView);
+	this->deviceContext->OMSetRenderTargets(1, this->RTViews.data(), this->depthStencilView);
 	this->deviceContext->DrawIndexed(nr_verticies, 0, 0);
 
 	//lightpass
@@ -427,7 +429,7 @@ void RenderEngine::setDrawCall(int nr_verticies)
 	this->swapChain->Present(0, 0);
 }
 
-RenderEngine::RenderEngine(HWND handle, int WIDHT, int HEIGHT)
+RenderEngine::RenderEngine(HWND handle, HINSTANCE hInstance, int WIDHT, int HEIGHT)
 {
 	this->swapChain = nullptr;
 	this->device = nullptr;
@@ -446,9 +448,10 @@ RenderEngine::RenderEngine(HWND handle, int WIDHT, int HEIGHT)
 		this->RTViews.push_back(rtv_entry);
 		this->SRViews.push_back(srv_entry);
 	}
+	this->camera.initDI(hInstance, handle);
 	this->initiateEngine(handle);
+
 	this->deferred_shading = new DeferredShaders(this->device);
-	this->setMatrixes();
 	this->createCBs();
 }
 

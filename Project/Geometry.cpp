@@ -11,17 +11,13 @@ void Geometry::setIndexArray(int * in_array)
 	this->indexArray = in_array;
 }
 
-Geometry::Geometry(RenderEngine * engine) : Drawable(engine)
+Geometry::Geometry(ID3D11Device * device) : Drawable()
 {
+	this->device = device;
 }
 
 Geometry::~Geometry()
 {
-}
-
-void Geometry::Draw()
-{
-	this->renderEngine->Draw(this);
 }
 
 bool Geometry::createBuffers()
@@ -41,7 +37,7 @@ bool Geometry::createBuffers()
 	data.SysMemPitch = 0;
 	data.SysMemSlicePitch = 0;
 
-	HRESULT hResult = this->renderEngine->getDevice()->CreateBuffer(&buffer_desc, &data, &this->vertexBuffer);
+	HRESULT hResult = this->device->CreateBuffer(&buffer_desc, &data, &this->vertexBuffer);
 	if (FAILED(hResult))
 	{
 		return false;
@@ -60,7 +56,8 @@ bool Geometry::createBuffers()
 	data.SysMemPitch = 0;
 	data.SysMemSlicePitch = 0;
 
-	hResult = this->renderEngine->getDevice()->CreateBuffer(&buffer_desc, &data, &this->indexBuffer);
+	hResult = this->device->CreateBuffer(&buffer_desc, &data, &this->indexBuffer);
+	
 	if (FAILED(hResult))
 	{
 		return false;
