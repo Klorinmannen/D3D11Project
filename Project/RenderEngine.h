@@ -23,12 +23,12 @@ class RenderEngine
 private:
 	//Variables
 
-	bool useRastBackCull = false;
+	bool useRastBackCull = true;
 
 	int HEIGHT;
 	int WIDTH;
 	float nearZ = 0.1f;
-	float farZ = 1000.0f;
+	float farZ = 10000.0f;
 	const int VIEW_COUNT = 2;
 
 	enum pass{Geometry_pass, Lightning_pass};
@@ -48,6 +48,7 @@ private:
 	DeferredShaders * deferred_shading;
 	Light lights;
 
+
 	float black[4] = {0 , 0, 0, 1};
 
 private:
@@ -61,6 +62,8 @@ private:
 	std::vector<ID3D11RenderTargetView*> RTViews;
 	std::vector<ID3D11ShaderResourceView*> SRViews;
 	std::vector<ID3D11Texture2D*> RTTextures;
+
+	ID3D11ShaderResourceView* null[2] = { nullptr, nullptr };
 
 	//backbuffer
 	ID3D11Texture2D * back_buffer_texture;
@@ -85,7 +88,6 @@ private:
 	bool setupDepthStencilBuffer();
 	bool setupRasterizer();
 	bool createCBs();
-	LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	void setupOMS();
 
 

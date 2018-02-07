@@ -8,20 +8,19 @@ class Light
 {
 
 private:
-	struct light
+	struct lights
 	{
 		XMVECTOR position; //w is 1 for points
 		XMVECTOR color; //w is color intensity
 	};
 
-	light lights[2];
+	lights light1;
 
 	void initateLights();
 
 public:
 	Light();
 	~Light();
-	light c_light;
-	light* getLights();
+	lights getLights();
 };
 #endif // !LIGHT_H

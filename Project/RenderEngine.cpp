@@ -296,7 +296,7 @@ bool RenderEngine::createCBs()
 	//light CB for PS
 	ZeroMemory(&cb_desc, sizeof(cb_desc));
 	
-	cb_desc.ByteWidth = sizeof(lights.c_light);
+	cb_desc.ByteWidth = sizeof(lights.getLights());
 	cb_desc.Usage = D3D11_USAGE_DYNAMIC;
 	cb_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	cb_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -304,7 +304,7 @@ bool RenderEngine::createCBs()
 	cb_desc.StructureByteStride = 0;
 
 	ZeroMemory(&data, sizeof(data));
-	data.pSysMem = this->lights.getLights();
+	data.pSysMem = &this->lights.getLights();
 	data.SysMemPitch = 0;
 	data.SysMemSlicePitch = 0;
 
@@ -313,7 +313,7 @@ bool RenderEngine::createCBs()
 	{
 		return false;
 	}
-	this->deviceContext->PSSetConstantBuffers(0, 2, &this->cb_lights);
+	this->deviceContext->PSSetConstantBuffers(0, 1, &this->cb_lights);
 	return true;
 }
 
@@ -321,7 +321,7 @@ void RenderEngine::setupOMS()
 {
 	this->deviceContext->RSSetState(this->RSState);
 	this->deviceContext->OMSetDepthStencilState(this->DSState, 1);
-	this->deviceContext->PSSetShaderResources(0, this->VIEW_COUNT, this->SRViews.data());
+
 }
 
 void RenderEngine::setWorldMatrix(XMMATRIX world)
@@ -413,20 +413,44 @@ void RenderEngine::layoutTopology(int in_topology, int in_layout)
 
 void RenderEngine::setDrawCall(int nr_verticies)
 {
+
+	//clears the rendertargets with black (0, 0, 0, 1)
 	this->clearRT();
-	//geometry pass
-	//render to gbuffer needs matrixes cb, vss, pss
+
+	//geometry pass//
+
+	//set correct shaders
 	this->updateShaders(RenderEngine::Geometry_pass);
-	this->deviceContext->OMSetRenderTargets(1, this->RTViews.data(), this->depthStencilView);
+
+	//set g-buffer textures as rendertargets
+	this->deviceContext->OMSetRenderTargets(this->VIEW_COUNT, this->RTViews.data(), this->depthStencilView);
+
+	//draw vertices
 	this->deviceContext->DrawIndexed(nr_verticies, 0, 0);
 
-	//lightpass
-	//render to backbuffer
-	this->updateShaders(RenderEngine::Lightning_pass);
+
+
+	//lightpass//
+
+	//set backbuffer as new rendertarget
 	this->deviceContext->OMSetRenderTargets(1, &this->back_buffer_view, this->depthStencilView);
+
+	//Set correct shaders
+	this->updateShaders(RenderEngine::Lightning_pass);
+
+	//Update Shader resource with texture views
+	this->deviceContext->PSSetShaderResources(0, this->VIEW_COUNT, this->SRViews.data());
+
+	//draw vertices
 	this->deviceContext->DrawIndexed(nr_verticies, 0, 0);
 
+	//reset resourceviews, untie SRViews from the shader to be used as rendertargets next frame
+	this->deviceContext->PSSetShaderResources(0, this->VIEW_COUNT, this->null);
+
+	//Present backbuffer to screen
 	this->swapChain->Present(0, 0);
+
+
 }
 
 RenderEngine::RenderEngine(HWND handle, HINSTANCE hInstance, int WIDHT, int HEIGHT)
