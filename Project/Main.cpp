@@ -1,4 +1,3 @@
-#include"Geometry.h"
 #include"RenderEngine.h"
 #include "windows.h"
 
@@ -12,14 +11,21 @@ void terrainPreSet(Terrain &terrain, RenderEngine &Engine);
 
 
 
+
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
 {
 	MSG msg = { 0 };
 	HWND wndHandle = InitWindow(hInstance);
 
 	RenderEngine Engine(wndHandle, hInstance, WIDTH, HEIGHT);
+	
+	//Heightmap
 	Terrain myTerrain(Engine.getDevice());
 	terrainPreSet(myTerrain, Engine);
+
+	//deferred Quad
+	
+
 
 	if (wndHandle)
 	{
@@ -97,5 +103,5 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 void terrainPreSet(Terrain &terrain, RenderEngine &Engine)
 {
 	terrain.createBuffers();
-	Engine.setWorldMatrix(terrain.getWorldMatrix());
+	Engine.setMatrixes(terrain.getWorldMatrix());
 }

@@ -1,20 +1,9 @@
 #include "DeferredShaders.h"
 
-DeferredShaders::DeferredShaders(ID3D11Device * in_device)
+DeferredShaders::DeferredShaders()
 {
-	//Allt skapas när DeferredShaders-Objektet kommer till liv :D
-	this->device = in_device;
-
-	this->createVertexShaders();
-	if (FAILED(this->hResult))
-	{
-		//deliver krakens messages of destructive powers inherited from the ancient times of boat swallowing
-	}
-	this->createPixelShaders();
-	if (FAILED(this->hResult))
-	{
-
-	}
+	//set nullptrs
+	//todo:
 }
 
 DeferredShaders::~DeferredShaders()
@@ -32,7 +21,7 @@ void DeferredShaders::createVertexShaders()
 		NULL,
 		&this->geometry_vertex_shader);
 
-	this->createInputLayout();
+	this->createInputLayout(layout::PN);
 	this->shader_blob->Release();
 
 	this->compileLightShader(DeferredShaders::Vertex_S);
@@ -42,24 +31,34 @@ void DeferredShaders::createVertexShaders()
 									&this->light_vertex_shader);
 
 
-	this->createInputLayout();
+	this->createInputLayout(layout::Pos);
 	this->shader_blob->Release();
 }
 
 void DeferredShaders::createPixelShaders()
 {
+	HRESULT hresult;
+
 	this->compileGeometryShader(DeferredShaders::Pixel_S);
-	this->device->CreatePixelShader(this->shader_blob->GetBufferPointer(), 
+	hresult = this->device->CreatePixelShader(this->shader_blob->GetBufferPointer(), 
 									this->shader_blob->GetBufferSize(),
 									NULL, 
 									&this->geometry_pixel_shader);
+	if (FAILED(hresult))
+	{
+		exit(-1);
+	}
 	this->shader_blob->Release();
 
 	this->compileLightShader(DeferredShaders::Pixel_S);
-	this->device->CreatePixelShader(this->shader_blob->GetBufferPointer(),
+	hresult = this->device->CreatePixelShader(this->shader_blob->GetBufferPointer(),
 									this->shader_blob->GetBufferSize(),
 									NULL,
 									&this->light_pixel_shader);
+	if (FAILED(hresult))
+	{
+		exit(-1);
+	}
 	this->shader_blob->Release();
 }
 
@@ -88,6 +87,11 @@ ID3D11InputLayout * DeferredShaders::getPNLayout() const
 	return this->inp_PN_layout;
 }
 
+ID3D11InputLayout * DeferredShaders::getPosLayout() const
+{
+	return this->inp_Pos_layout;
+}
+
 float DeferredShaders::getPTNSize() const
 {
 	return this->ptn_size;
@@ -101,6 +105,11 @@ float DeferredShaders::getPNSize() const
 float DeferredShaders::getPCSize() const
 {
 	return this->pc_size;
+}
+
+void DeferredShaders::setDevice(ID3D11Device * in_device)
+{
+	this->device = in_device;
 }
 
 void DeferredShaders::compileGeometryShader(type in_type)
@@ -167,28 +176,54 @@ void DeferredShaders::compileLightShader(type in_type)
 	}
 }
 
-void DeferredShaders::createInputLayout()
+void DeferredShaders::createInputLayout(int in_type)
 {
-	D3D11_INPUT_ELEMENT_DESC dsc[] = {
-										{
-											"POSITION",
-											0,
-											DXGI_FORMAT_R32G32B32_FLOAT,
-											0,
-											0,
-											D3D11_INPUT_PER_VERTEX_DATA,
-											0
-										},
-										{
-											"NORMAL",
-											0,
-											DXGI_FORMAT_R32G32B32_FLOAT,
-											0,
-											12,
-											D3D11_INPUT_PER_VERTEX_DATA,
-											0
-										}
-	};
+	switch (in_type)
+	{
+	case layout::PN:
+	{
+		D3D11_INPUT_ELEMENT_DESC dscPN[] = {
+											{
+												"POSITION",
+												0,
+												DXGI_FORMAT_R32G32B32_FLOAT,
+												0,
+												0,
+												D3D11_INPUT_PER_VERTEX_DATA,
+												0
+											},
+											{
+												"NORMAL",
+												0,
+												DXGI_FORMAT_R32G32B32_FLOAT,
+												0,
+												12,
+												D3D11_INPUT_PER_VERTEX_DATA,
+												0
+											}
+		};
 
-	this->device->CreateInputLayout(dsc, ARRAYSIZE(dsc), this->shader_blob->GetBufferPointer(), this->shader_blob->GetBufferSize(), &this->inp_PN_layout);
+		this->device->CreateInputLayout(dscPN, ARRAYSIZE(dscPN), this->shader_blob->GetBufferPointer(), this->shader_blob->GetBufferSize(), &this->inp_PN_layout);
+	}
+		break;
+	
+	case layout::Pos:
+	{
+		D3D11_INPUT_ELEMENT_DESC dscPos[] = {
+											{
+												"POSITION",
+												0,
+												DXGI_FORMAT_R32G32B32_FLOAT,
+												0,
+												0,
+												D3D11_INPUT_PER_VERTEX_DATA,
+												0
+											},
+		};
+
+		this->device->CreateInputLayout(dscPos, ARRAYSIZE(dscPos), this->shader_blob->GetBufferPointer(), this->shader_blob->GetBufferSize(), &this->inp_Pos_layout);
+		break;
+	}
+	}
+
 }

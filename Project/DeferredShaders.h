@@ -2,6 +2,7 @@
 #define DEFERREDSHADERS_H
 
 #include"IncludeDX11.h"
+#include"Settings.h"
 
 //shaders for deferred rendering technique
 
@@ -25,6 +26,7 @@ private:
 
 	//inputLayouts
 	ID3D11InputLayout* inp_PN_layout;
+	ID3D11InputLayout* inp_Pos_layout;
 
 	float ptn_size;
 	float pn_size;
@@ -33,12 +35,11 @@ private:
 private:
 	void compileGeometryShader(type in_type);
 	void compileLightShader(type in_type);
-	void createInputLayout();
-	void createVertexShaders();
-	void createPixelShaders();
+	void createInputLayout(int in_type);
+
 	
 public:
-	DeferredShaders(ID3D11Device* in_device);
+	DeferredShaders();
 	~DeferredShaders();
 
 	ID3D11VertexShader* getGeoVS();
@@ -46,9 +47,13 @@ public:
 	ID3D11VertexShader* getLightVS() const;
 	ID3D11PixelShader* getLightPS() const;
 	ID3D11InputLayout* getPNLayout() const;
+	ID3D11InputLayout* getPosLayout() const;
 	float getPTNSize() const;
 	float getPNSize() const;
 	float getPCSize() const;
 
+	void createVertexShaders();
+	void createPixelShaders();
+	void setDevice(ID3D11Device * in_device);
 };
 #endif // !DEFERREDSHADERS_H

@@ -1,6 +1,7 @@
 #ifndef RenderEngine_H
 #define RenderEngine_H
 
+#include "Quad.h"
 #include "Geometry.h"
 #include "Terrain.h"
 #include "Settings.h"
@@ -33,6 +34,7 @@ private:
 
 	enum pass{Geometry_pass, Lightning_pass};
 
+	//Transformation matrixes
 	struct matrix_wvp
 	{
 		XMMATRIX world;
@@ -40,16 +42,19 @@ private:
 		XMMATRIX projection;
 		XMMATRIX wvp;
 	};
-
 	matrix_wvp m_wvp;
+
+	//DeferredQuad
+	Quad quad;
+
 	//FPS
 	Camera camera;
 	//deferred shaders
-	DeferredShaders * deferred_shading;
+	DeferredShaders deferred_shading;
 	Light lights;
 
 
-	float black[4] = {0 , 0, 0, 1};
+	float black[4];
 
 private:
 	//D3D11 data
@@ -94,17 +99,18 @@ private:
 	//Render functions
 	void updateMatrixes();
 	void updateShaders(int in_pass);
-	void updateBuffers(ID3D11Buffer* in_VertexBuffer, ID3D11Buffer* in_IndexBuffer, float size_of);
+	void updateBuffers(ID3D11Buffer* in_VertexBuffer, ID3D11Buffer* in_IndexBuffer, float size_of_vertex);
 	void clearRT();
 	void mapCBs();
 	void layoutTopology(int in_topology, int in_layout);
 	void setDrawCall(int nr_verticies);
+	void setQuad();
 public:
 
 	RenderEngine(HWND wndHandle, HINSTANCE hInstance, int WIDTH, int HEIGHT);
 	~RenderEngine();
 
-	void setWorldMatrix(XMMATRIX world);
+	void setMatrixes(XMMATRIX world);
 	void update();
 	void Draw(Terrain * in_terrain); // draw called object
 	void Draw(Geometry * in_geometry);

@@ -10,11 +10,11 @@ cbuffer matrixes
 struct vs_input
 {
 	float3 Position : POSITION;
-	float3 Normal : NORMAL;
 };
 
 float4 VS_Entry(in vs_input input) :  SV_Position
 {
 
-	return mul(float4(input.Position, 1), wvp);
+	//transform vertex into clipspace
+	return float4(input.Position, 1.0f);
 }

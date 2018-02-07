@@ -1,4 +1,9 @@
 
+cbuffer lights
+{
+	float4 wPosition;
+	float4 Color; //w for intensity
+};
 
 struct ps_input
 {

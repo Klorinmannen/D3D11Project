@@ -5,7 +5,7 @@
 
 //add more if needed depending on objects etc etc.
 enum topology{TriangleList = 0};
-enum layout{PTN = 0, PC = 1, PN = 2};
+enum layout{PTN = 0, PC = 1, PN = 2, Pos = 3};
 
 namespace Structs
 {

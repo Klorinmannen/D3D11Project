@@ -233,6 +233,8 @@ bool RenderEngine::setupDepthStencilBuffer()
 
 bool RenderEngine::setupRasterizer()
 {
+	//creating a custom rasterizer state
+
 	D3D11_RASTERIZER_DESC rast_desc;
 	HRESULT hResult;
 
@@ -244,7 +246,7 @@ bool RenderEngine::setupRasterizer()
 	rast_desc.DepthBias = 0;
 	rast_desc.DepthBiasClamp = 0.0f;
 	rast_desc.DepthClipEnable = TRUE;
-	rast_desc.FrontCounterClockwise = TRUE;
+	rast_desc.FrontCounterClockwise = FALSE;
 	rast_desc.MultisampleEnable = FALSE;
 	rast_desc.ScissorEnable = FALSE;
 	rast_desc.SlopeScaledDepthBias = 0.0f;
@@ -324,7 +326,7 @@ void RenderEngine::setupOMS()
 
 }
 
-void RenderEngine::setWorldMatrix(XMMATRIX world)
+void RenderEngine::setMatrixes(XMMATRIX world)
 {
 	//Projection
 	this->m_wvp.projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, this->WIDTH / this->HEIGHT, this->nearZ, this->farZ);
@@ -335,35 +337,40 @@ void RenderEngine::setWorldMatrix(XMMATRIX world)
 
 void RenderEngine::update()
 {
+	//update camera from keyboard and mouse
 	this->camera.getInput();
 	this->camera.update();
 }
 
 void RenderEngine::updateMatrixes()
 {
+	//update with new view from camera object
 	this->m_wvp.view = this->camera.getView();
-	this->m_wvp.world = XMMatrixRotationY(0.0f); //gör inget alls
 	this->m_wvp.wvp = this->m_wvp.world * this->m_wvp.view * this->m_wvp.projection; // world*view*proj
 }
 
 void RenderEngine::updateShaders(int in_pass)
 {
+	//updates shaders based on current pass
+
 	switch (in_pass)
 	{
 	case RenderEngine::Geometry_pass:
-		this->deviceContext->VSSetShader(this->deferred_shading->getGeoVS(), nullptr, 0);
-		this->deviceContext->PSSetShader(this->deferred_shading->getGeoPS(), nullptr, 0);
+		this->deviceContext->VSSetShader(this->deferred_shading.getGeoVS(), nullptr, 0);
+		this->deviceContext->PSSetShader(this->deferred_shading.getGeoPS(), nullptr, 0);
 		break;
 	case RenderEngine::Lightning_pass:
-		this->deviceContext->VSSetShader(this->deferred_shading->getLightVS(), nullptr, 0);
-		this->deviceContext->PSSetShader(this->deferred_shading->getLightPS(), nullptr, 0);
+		this->deviceContext->VSSetShader(this->deferred_shading.getLightVS(), nullptr, 0);
+		this->deviceContext->PSSetShader(this->deferred_shading.getLightPS(), nullptr, 0);
 		break;
 	}
 }
 
-void RenderEngine::updateBuffers(ID3D11Buffer * in_VertexBuffer, ID3D11Buffer * in_IndexBuffer, float size_of)
+void RenderEngine::updateBuffers(ID3D11Buffer * in_VertexBuffer, ID3D11Buffer * in_IndexBuffer, float size_of_vertex)
 {
-	UINT weirdoInt = (UINT)size_of;
+	//sets vertex/index buffers to current object
+
+	UINT weirdoInt = (UINT)size_of_vertex;
 	UINT offset = 0.0f;
 
 	this->deviceContext->IASetVertexBuffers(0, 1, &in_VertexBuffer, &weirdoInt, &offset);
@@ -373,11 +380,12 @@ void RenderEngine::updateBuffers(ID3D11Buffer * in_VertexBuffer, ID3D11Buffer * 
 
 void RenderEngine::clearRT()
 {
-	//clear the rendertargets before drawing with some color
+	//clear the rendertargets before drawing with black
 	for (size_t i = 0; i < this->VIEW_COUNT; i++)
 	{
-		this->deviceContext->ClearRenderTargetView(this->back_buffer_view, this->black);
+		this->deviceContext->ClearRenderTargetView(this->RTViews[i], this->black);
 	}
+	this->deviceContext->ClearRenderTargetView(this->back_buffer_view, this->black);
 	this->deviceContext->ClearDepthStencilView(this->depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
 }
 
@@ -406,7 +414,10 @@ void RenderEngine::layoutTopology(int in_topology, int in_layout)
 	{
 	case PN:
 		//Pos, Normal
-		this->deviceContext->IASetInputLayout(this->deferred_shading->getPNLayout());
+		this->deviceContext->IASetInputLayout(this->deferred_shading.getPNLayout());
+		break;
+	case Pos:
+		this->deviceContext->IASetInputLayout(this->deferred_shading.getPosLayout());
 		break;
 	}
 }
@@ -414,10 +425,10 @@ void RenderEngine::layoutTopology(int in_topology, int in_layout)
 void RenderEngine::setDrawCall(int nr_verticies)
 {
 
-	//clears the rendertargets with black (0, 0, 0, 1)
+	//clears the rendertargets
 	this->clearRT();
 
-	//geometry pass//
+	//****geometry pass****\\
 
 	//set correct shaders
 	this->updateShaders(RenderEngine::Geometry_pass);
@@ -428,9 +439,7 @@ void RenderEngine::setDrawCall(int nr_verticies)
 	//draw vertices
 	this->deviceContext->DrawIndexed(nr_verticies, 0, 0);
 
-
-
-	//lightpass//
+	//****lightpass****\\
 
 	//set backbuffer as new rendertarget
 	this->deviceContext->OMSetRenderTargets(1, &this->back_buffer_view, this->depthStencilView);
@@ -441,8 +450,8 @@ void RenderEngine::setDrawCall(int nr_verticies)
 	//Update Shader resource with texture views
 	this->deviceContext->PSSetShaderResources(0, this->VIEW_COUNT, this->SRViews.data());
 
-	//draw vertices
-	this->deviceContext->DrawIndexed(nr_verticies, 0, 0);
+	//draw vertices for fullscreen quad
+	this->setQuad(); 
 
 	//reset resourceviews, untie SRViews from the shader to be used as rendertargets next frame
 	this->deviceContext->PSSetShaderResources(0, this->VIEW_COUNT, this->null);
@@ -451,6 +460,13 @@ void RenderEngine::setDrawCall(int nr_verticies)
 	this->swapChain->Present(0, 0);
 
 
+}
+
+void RenderEngine::setQuad()
+{
+	this->updateBuffers(this->quad.getVertexBuffer(), this->quad.getIndexBuffer(), this->quad.getSizeOfVertex());
+	this->layoutTopology(this->quad.getTopology(), this->quad.getLayout());
+	this->deviceContext->DrawIndexed(this->quad.getNrOfVertices(), 0, 0);
 }
 
 RenderEngine::RenderEngine(HWND handle, HINSTANCE hInstance, int WIDHT, int HEIGHT)
@@ -472,11 +488,28 @@ RenderEngine::RenderEngine(HWND handle, HINSTANCE hInstance, int WIDHT, int HEIG
 		this->RTViews.push_back(rtv_entry);
 		this->SRViews.push_back(srv_entry);
 	}
+
+	//start up camera
 	this->camera.initDI(hInstance, handle);
+
+	//start up the rest of the deferred engine
 	this->initiateEngine(handle);
 
-	this->deferred_shading = new DeferredShaders(this->device);
+	//setup shaders used for deferred
+	this->deferred_shading.setDevice(this->device);
+	this->deferred_shading.createVertexShaders();
+	this->deferred_shading.createPixelShaders();
+
+	//setup lightpass quad
+	this->quad.setDevice(this->device);
+	this->quad.createBuffers();
 	this->createCBs();
+
+	//set clearRT to black
+	this->black[0] = 0.0f;
+	this->black[1] = 0.0f;
+	this->black[2] = 0.0f;
+	this->black[3] = 1.0f;
 }
 
 RenderEngine::~RenderEngine()
@@ -486,7 +519,6 @@ RenderEngine::~RenderEngine()
 	Release all com-objects
 
 	*/
-	delete this->deferred_shading;
 	this->swapChain->Release();
 	this->device->Release();
 	this->deviceContext->Release();

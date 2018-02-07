@@ -24,9 +24,14 @@ vs_output VS_Entry(in vs_input input)
 {
 	vs_output output = (vs_output)0;
 
-	output.NormalWS = mul(input.Normal, world);
+	output.NormalWS = input.Normal;
 	float4 pos = float4(input.Position, 1.0f);
-	output.PositionCS = mul(pos, wvp);
-	output.PositionWS = mul(pos, world);
+	
+	pos = mul(pos, world);
+	pos = mul(pos, view);
+	pos = mul(pos, projection);
+
+	output.PositionCS = pos;
+	output.PositionWS = pos;
 	return output;
 }
