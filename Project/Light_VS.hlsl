@@ -13,10 +13,8 @@ struct vs_input
 	float3 Normal : NORMAL;
 };
 
-float4 VS_Entry(in vs_input input) : SV_Position
+float4 VS_Entry(in vs_input input) :  SV_Position
 {
-	float4 pos = mul(float4(input.Position, 1.0f), wvp);
-	pos = mul(pos, wvp);
 
-	return pos;
+	return mul(float4(input.Position, 1), wvp);
 }
