@@ -411,18 +411,26 @@ void RenderEngine::layoutTopology(int in_topology, int in_layout)
 	switch (in_topology)
 	{
 	case TriangleList:
+	{
 		this->deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	}
 		break;
 	}
 
 	switch (in_layout)
 	{
 	case PN:
+	{
 		//Pos, Normal
 		this->deviceContext->IASetInputLayout(this->deferred_shading.getPNLayout());
+		this->PNActive = true;
+	}
 		break;
 	case Pos:
+	{
 		this->deviceContext->IASetInputLayout(this->deferred_shading.getPosLayout());
+		this->PNActive = false;
+	}
 		break;
 	}
 }
@@ -457,7 +465,7 @@ void RenderEngine::setDrawCall(int nr_verticies)
 
 	//draw vertices for fullscreen quad
 	this->setQuad(); 
-
+	
 	//reset resourceviews, untie SRViews from the shader to be used as rendertargets next frame
 	this->deviceContext->PSSetShaderResources(0, this->VIEW_COUNT, this->null);
 
@@ -469,9 +477,11 @@ void RenderEngine::setDrawCall(int nr_verticies)
 
 void RenderEngine::setQuad()
 {
-	this->updateBuffers(this->quad.getVertexBuffer(), this->quad.getIndexBuffer(), this->quad.getSizeOfVertex());
+
 	this->layoutTopology(this->quad.getTopology(), this->quad.getLayout());
+	this->updateBuffers(this->quad.getVertexBuffer(), this->quad.getIndexBuffer(), this->quad.getSizeOfVertex());
 	this->deviceContext->DrawIndexed(this->quad.getNrOfVertices(), 0, 0);
+	
 }
 
 RenderEngine::RenderEngine(HWND handle, HINSTANCE hInstance, int WIDHT, int HEIGHT)
@@ -550,8 +560,8 @@ void RenderEngine::Draw(Terrain * in_terrain)
 {
 	this->updateMatrixes();
 	this->mapCBs();
-	this->updateBuffers(in_terrain->getVertexBuffer(), in_terrain->getIndexBuffer(), in_terrain->getSizeOfVertex());
 	this->layoutTopology(in_terrain->getTopology(), in_terrain->getLayout());
+	this->updateBuffers(in_terrain->getVertexBuffer(), in_terrain->getIndexBuffer(), in_terrain->getSizeOfVertex());
 	this->setDrawCall(in_terrain->getNrOfVertices());
 
 }

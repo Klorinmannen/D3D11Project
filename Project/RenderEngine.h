@@ -24,6 +24,7 @@ class RenderEngine
 private:
 	//Variables
 
+	bool PNActive = false;
 	bool useRastBackCull = true;
 
 	int HEIGHT;

@@ -332,5 +332,5 @@ int Terrain::getLayout()
 
 XMMATRIX Terrain::getWorldMatrix() const
 {
-	return DirectX::XMMatrixScaling(400, 60, 400) *  DirectX::XMMatrixTranslation(-1500.0f, -1500.0f, -1500.0f);
+	return DirectX::XMMatrixScaling(200, 60, 200) *  DirectX::XMMatrixTranslation(-1500.0f, -1500.0f, -1500.0f);
 }
