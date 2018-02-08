@@ -41,18 +41,18 @@ bool RenderEngine::initiateEngine(HWND handle)
 	hresult = this->device->CreateRenderTargetView(this->back_buffer_texture, NULL, &this->back_buffer_view);
 	if (FAILED(hresult))
 	{
-		return false;
+		exit(-1);
 	}
 
 	if (!this->setupDepthStencilBuffer())
 	{
-		return false;
+		exit(-1);
 	}
 
 	if (!this->setupRTVs())
 	{
 		//if shit goes haywire
-		return false;
+		exit(-1);
 	}
 	this->setupVP();
 	this->setupRasterizer();
@@ -293,7 +293,8 @@ bool RenderEngine::createCBs()
 	{
 		return false;
 	}
-	this->deviceContext->VSSetConstantBuffers(0, 1, &this->cb_matrixes);
+	//this->deviceContext->VSSetConstantBuffers(0, 1, &this->cb_matrixes);
+	this->deviceContext->GSSetConstantBuffers(0, 1, &this->cb_matrixes);
 
 	//light CB for PS
 	ZeroMemory(&cb_desc, sizeof(cb_desc));
@@ -333,6 +334,7 @@ void RenderEngine::setMatrixes(XMMATRIX world)
 	this->m_wvp.view = this->camera.getView();
 	this->m_wvp.world = world;
 	this->m_wvp.wvp = this->m_wvp.world * this->m_wvp.view * this->m_wvp.projection; // world*view*proj
+	this->m_wvp.vp = this->m_wvp.view * this->m_wvp.projection;
 }
 
 void RenderEngine::update()
@@ -347,6 +349,7 @@ void RenderEngine::updateMatrixes()
 	//update with new view from camera object
 	this->m_wvp.view = this->camera.getView();
 	this->m_wvp.wvp = this->m_wvp.world * this->m_wvp.view * this->m_wvp.projection; // world*view*proj
+	this->m_wvp.vp = this->m_wvp.view * this->m_wvp.projection;
 }
 
 void RenderEngine::updateShaders(int in_pass)
@@ -356,10 +359,12 @@ void RenderEngine::updateShaders(int in_pass)
 	switch (in_pass)
 	{
 	case RenderEngine::Geometry_pass:
+		this->deviceContext->GSSetShader(this->deferred_shading.getGeoShader(), nullptr, 0);
 		this->deviceContext->VSSetShader(this->deferred_shading.getGeoVS(), nullptr, 0);
 		this->deviceContext->PSSetShader(this->deferred_shading.getGeoPS(), nullptr, 0);
 		break;
 	case RenderEngine::Lightning_pass:
+		this->deviceContext->GSSetShader(nullptr, nullptr, 0);
 		this->deviceContext->VSSetShader(this->deferred_shading.getLightVS(), nullptr, 0);
 		this->deviceContext->PSSetShader(this->deferred_shading.getLightPS(), nullptr, 0);
 		break;
@@ -499,6 +504,9 @@ RenderEngine::RenderEngine(HWND handle, HINSTANCE hInstance, int WIDHT, int HEIG
 	this->deferred_shading.setDevice(this->device);
 	this->deferred_shading.createVertexShaders();
 	this->deferred_shading.createPixelShaders();
+	this->deferred_shading.createGeometryShader();
+
+	this->deviceContext->GSSetShader(this->deferred_shading.getGeoShader(), nullptr, 0);
 
 	//setup lightpass quad
 	this->quad.setDevice(this->device);

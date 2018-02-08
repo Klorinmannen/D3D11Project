@@ -24,7 +24,7 @@ class RenderEngine
 private:
 	//Variables
 
-	bool useRastBackCull = true;
+	bool useRastBackCull = false;
 
 	int HEIGHT;
 	int WIDTH;
@@ -40,6 +40,7 @@ private:
 		XMMATRIX world;
 		XMMATRIX view;
 		XMMATRIX projection;
+		XMMATRIX vp;
 		XMMATRIX wvp;
 	};
 	matrix_wvp m_wvp;

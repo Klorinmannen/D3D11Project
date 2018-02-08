@@ -1,12 +1,4 @@
 
-cbuffer matrixes
-{
-	row_major float4x4 world;
-	row_major float4x4 view;
-	row_major float4x4 projection;
-	row_major float4x4 wvp;
-};
-
 struct vs_input
 {
 	float3 Position : POSITION;

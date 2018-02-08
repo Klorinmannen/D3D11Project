@@ -1,8 +1,8 @@
 #include"RenderEngine.h"
 #include "windows.h"
 
-const int HEIGHT = 600;
-const int WIDTH = 800;
+const int HEIGHT = 1080;
+const int WIDTH = 1920;
 
 HWND InitWindow(HINSTANCE hInstance);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);

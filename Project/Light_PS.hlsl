@@ -18,6 +18,6 @@ float4 PS_Entry(in float4 PositionCS : SV_Position) : SV_Target0
 	float3 Normal = NormalTexture.Load(indices);
 	float3 pos = PositionTexture.Load(indices);
 
-	float3 total = Normal;
+	float3 total = pos * ambient;
 	return float4(total, 1.0f);
 }

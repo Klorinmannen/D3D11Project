@@ -14,22 +14,32 @@ DeferredShaders::~DeferredShaders()
 
 void DeferredShaders::createVertexShaders()
 {
+	HRESULT hresult;
 
-	this->compileGeometryShader(DeferredShaders::Vertex_S);
-	this->device->CreateVertexShader(this->shader_blob->GetBufferPointer(),
-		this->shader_blob->GetBufferSize(),
-		NULL,
-		&this->geometry_vertex_shader);
+	this->compileGeometryPassShader(DeferredShaders::Vertex_S);
+	hresult = this->device->CreateVertexShader(this->shader_blob->GetBufferPointer(),
+												this->shader_blob->GetBufferSize(),
+												NULL,
+												&this->geometry_vertex_shader);
+	
+	if (FAILED(hresult))
+	{
+		exit(-1);
+	}
 
 	this->createInputLayout(layout::PN);
 	this->shader_blob->Release();
 
-	this->compileLightShader(DeferredShaders::Vertex_S);
-	this->device->CreateVertexShader(this->shader_blob->GetBufferPointer(),
-									this->shader_blob->GetBufferSize(),
-									NULL,
-									&this->light_vertex_shader);
+	this->compileLightPassShader(DeferredShaders::Vertex_S);
+	hresult = this->device->CreateVertexShader(this->shader_blob->GetBufferPointer(),
+												this->shader_blob->GetBufferSize(),
+												NULL,
+												&this->light_vertex_shader);
 
+	if (FAILED(hresult))
+	{
+		exit(-1);
+	}
 
 	this->createInputLayout(layout::Pos);
 	this->shader_blob->Release();
@@ -39,22 +49,22 @@ void DeferredShaders::createPixelShaders()
 {
 	HRESULT hresult;
 
-	this->compileGeometryShader(DeferredShaders::Pixel_S);
+	this->compileGeometryPassShader(DeferredShaders::Pixel_S);
 	hresult = this->device->CreatePixelShader(this->shader_blob->GetBufferPointer(), 
-									this->shader_blob->GetBufferSize(),
-									NULL, 
-									&this->geometry_pixel_shader);
+												this->shader_blob->GetBufferSize(),
+												NULL, 
+												&this->geometry_pixel_shader);
 	if (FAILED(hresult))
 	{
 		exit(-1);
 	}
 	this->shader_blob->Release();
 
-	this->compileLightShader(DeferredShaders::Pixel_S);
+	this->compileLightPassShader(DeferredShaders::Pixel_S);
 	hresult = this->device->CreatePixelShader(this->shader_blob->GetBufferPointer(),
-									this->shader_blob->GetBufferSize(),
-									NULL,
-									&this->light_pixel_shader);
+												this->shader_blob->GetBufferSize(),
+												NULL,
+												&this->light_pixel_shader);
 	if (FAILED(hresult))
 	{
 		exit(-1);
@@ -80,6 +90,11 @@ ID3D11VertexShader * DeferredShaders::getLightVS() const
 ID3D11PixelShader * DeferredShaders::getLightPS() const
 {
 	return this->light_pixel_shader;
+}
+
+ID3D11GeometryShader * DeferredShaders::getGeoShader() const
+{
+	return this->geometry_Shader;
 }
 
 ID3D11InputLayout * DeferredShaders::getPNLayout() const
@@ -112,7 +127,7 @@ void DeferredShaders::setDevice(ID3D11Device * in_device)
 	this->device = in_device;
 }
 
-void DeferredShaders::compileGeometryShader(type in_type)
+void DeferredShaders::compileGeometryPassShader(type in_type)
 {
 	switch (in_type)
 	{
@@ -145,7 +160,7 @@ void DeferredShaders::compileGeometryShader(type in_type)
 	}
 }
 
-void DeferredShaders::compileLightShader(type in_type)
+void DeferredShaders::compileLightPassShader(type in_type)
 {
 	switch (in_type)
 	{
@@ -226,4 +241,36 @@ void DeferredShaders::createInputLayout(int in_type)
 	}
 	}
 
+}
+
+void DeferredShaders::createGeometryShader()
+{
+	HRESULT hresult;
+
+	this->compileGeometryShader();
+	hresult = this->device->CreateGeometryShader(this->shader_blob->GetBufferPointer(), 
+													this->shader_blob->GetBufferSize(), 
+													NULL, 
+													&this->geometry_Shader);
+	if (FAILED(hresult))
+	{
+		exit(-1);
+	}
+	this->shader_blob->Release();
+
+}
+
+void DeferredShaders::compileGeometryShader()
+{
+	this->hResult = D3DCompileFromFile(
+										L"Geometry_Shader.hlsl",
+										nullptr,
+										nullptr,
+										"GS_Entry",
+										"gs_5_0",
+										D3DCOMPILE_DEBUG,
+										0,
+										&this->shader_blob,
+										&this->error_blob
+	);
 }

@@ -23,7 +23,8 @@ private:
 	ID3D11VertexShader * light_vertex_shader;
 	ID3D11PixelShader * geometry_pixel_shader;
 	ID3D11PixelShader * light_pixel_shader;
-
+	ID3D11GeometryShader * geometry_Shader;
+	
 	//inputLayouts
 	ID3D11InputLayout* inp_PN_layout;
 	ID3D11InputLayout* inp_Pos_layout;
@@ -33,10 +34,11 @@ private:
 	float pc_size;
 
 private:
-	void compileGeometryShader(type in_type);
-	void compileLightShader(type in_type);
+	void compileGeometryPassShader(type in_type);
+	void compileLightPassShader(type in_type);
 	void createInputLayout(int in_type);
-
+	
+	void compileGeometryShader();
 	
 public:
 	DeferredShaders();
@@ -46,12 +48,16 @@ public:
 	ID3D11PixelShader* getGeoPS() const;
 	ID3D11VertexShader* getLightVS() const;
 	ID3D11PixelShader* getLightPS() const;
+	ID3D11GeometryShader * getGeoShader() const;
 	ID3D11InputLayout* getPNLayout() const;
 	ID3D11InputLayout* getPosLayout() const;
+	
+	
 	float getPTNSize() const;
 	float getPNSize() const;
 	float getPCSize() const;
 
+	void createGeometryShader();
 	void createVertexShaders();
 	void createPixelShaders();
 	void setDevice(ID3D11Device * in_device);
