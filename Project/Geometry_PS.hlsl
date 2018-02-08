@@ -14,7 +14,7 @@ struct ps_input
 
 struct ps_output
 {
-	float4 Normal : SV_Target0;
+	float3 Normal : SV_Target0;
 	float4 Position : SV_Target1;
 	//float4 DiffuseColor : SV_Target2;
 };
@@ -23,9 +23,10 @@ ps_output PS_Entry(in ps_input input)
 {
 	ps_output output = (ps_output)0;
 
-	float3 reNormalizedWS = normalize(input.NormalWS);
+	//float3 reNormalizedWS = saturate(normalize(input.NormalWS));
 
-	output.Normal = float4(reNormalizedWS, 1.0f);
+	output.Normal.xz = input.NormalWS.xz;
+	output.Normal.y = -input.NormalWS.y;
 	output.Position = input.PositionWS;
 
 	return output;

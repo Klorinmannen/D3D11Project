@@ -7,7 +7,7 @@ struct vs_input
 
 struct vs_output
 {
-	float4 Position : SV_Position;
+	float4 Position : POSITION;
 	float3 Normal : NORMAL;
 };
 

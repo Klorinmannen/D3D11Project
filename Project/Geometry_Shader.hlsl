@@ -10,7 +10,7 @@ cbuffer matrixes
 
 struct gs_in
 {
-	float4 Position : SV_Position;
+	float4 Position : POSITION;
 	float3 Normal : NORMAL;
 };
 
@@ -41,4 +41,5 @@ void GS_Entry(in triangle gs_in inp[3], inout TriangleStream<gs_out> Triangles)
 		Triangles.Append(outp);
 	}
 
+	Triangles.RestartStrip();
 }
