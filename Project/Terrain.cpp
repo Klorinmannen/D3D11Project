@@ -299,7 +299,7 @@ int Terrain::getNrOfFaces(void) const {
 
 int Terrain::getNrOfVertices(void) {
 
-	return this->nrOfVertices;
+	return this->nrOfFaces * 3;
 
 }
 
@@ -332,5 +332,5 @@ int Terrain::getLayout()
 
 XMMATRIX Terrain::getWorldMatrix() const
 {
-	return (DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixTranslation(-100.0f, -100.0f, -100.0f));
+	return DirectX::XMMatrixScaling(400, 60, 400) *  DirectX::XMMatrixTranslation(-1500.0f, -1500.0f, -1500.0f);
 }

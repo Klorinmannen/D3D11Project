@@ -49,6 +49,7 @@ public:
 
 	//Get
 	int getNrOfFaces(void) const;
+	//this->nrOfFaces * 3
 	int getNrOfVertices(void);
 	ID3D11Buffer* getVertexBuffer();
 	ID3D11Buffer* getIndexBuffer();

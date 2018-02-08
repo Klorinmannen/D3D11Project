@@ -259,15 +259,9 @@ HRESULT CreateShaders()
 
 }
 
-ID3D11Buffer* CreateAppendConsumeBuffer()
-{
-	return 0;
-}
-
-
 void CreateTriangleData()
 {
-
+	//triagle vertex layout
 	struct TriangleVertex
 	{
 		DirectX::XMFLOAT3 Pos;
@@ -296,9 +290,9 @@ void CreateTriangleData()
 	
 	int indices[6] = {2, 1, 0, 2, 0, 3};
 
-
+	//define index buffer
 	D3D11_BUFFER_DESC indexDesc;
-	memset(&indexDesc, 0, sizeof(indexDesc)); //vad gör denna?
+	memset(&indexDesc, 0, sizeof(indexDesc));
 	indexDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	indexDesc.Usage = D3D11_USAGE_DEFAULT;
 	indexDesc.ByteWidth = sizeof(indices);
@@ -319,7 +313,7 @@ void CreateTriangleData()
 	D3D11_SUBRESOURCE_DATA data;
 	data.pSysMem = triangleVertices;
 
-	// create a Vertex Buffer
+	// create a Vertex Buffer and Index buffer
 	gDevice->CreateBuffer(&bufferDesc, &data, &gVertexBuffer);
 	gDevice->CreateBuffer(&indexDesc, &iData, &indexBuffer);
 }
@@ -458,17 +452,17 @@ HWND InitWindow(HINSTANCE hInstance)
 	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 
 	HWND handle = CreateWindow(
-		L"BTH_D3D_DEMO",
-		L"BTH Direct3D Demo",
-		WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		rc.right - rc.left,
-		rc.bottom - rc.top,
-		nullptr,
-		nullptr,
-		hInstance,
-		nullptr);
+								L"BTH_D3D_DEMO",
+								L"BTH Direct3D Demo",
+								WS_OVERLAPPEDWINDOW,
+								CW_USEDEFAULT,
+								CW_USEDEFAULT,
+								rc.right - rc.left,
+								rc.bottom - rc.top,
+								nullptr,
+								nullptr,
+								hInstance,
+								nullptr);
 
 	
 
@@ -541,11 +535,7 @@ void createConstantBuffer()
 {
 	HRESULT result;
 
-/*
-	rotY = XMMatrixTranspose(rotY);
-	view = XMMatrixTranspose(view);
-	projM = XMMatrixTranspose(projM);*/
-
+	//Create matrixes for cb
 	XMStoreFloat4x4(&vertexCB.objectToWorldM, rotY);
 	XMStoreFloat4x4(&vertexCB.worldToViewM, view);
 	XMStoreFloat4x4(&vertexCB.projectionMatrix, projM);
@@ -559,6 +549,7 @@ void createConstantBuffer()
 								0, 0, 0, 1);
 	
 
+	//create constant buffer
 	D3D11_BUFFER_DESC descCB;
 	descCB.ByteWidth = sizeof(VS_CONSTANT_BUFFER);
 	descCB.Usage = D3D11_USAGE_DYNAMIC;
@@ -574,12 +565,15 @@ void createConstantBuffer()
 
 	result = gDevice->CreateBuffer(&descCB, &data, &gConstantBuffer);
 
-	gDeviceContext->VSSetConstantBuffers(0, 1, &gConstantBuffer);
+
+	//attach constant buffer to vertex and geometry shader stages
+	gDeviceContext->VSSetConstantBuffers(NULL, NULL, nullptr);
 	gDeviceContext->GSSetConstantBuffers(0, 1, &gConstantBuffer);
 }
 
 void rotate()
 {
+		//add rotation to the world matrix
 		rotation += 0.005f;
 		XMMATRIX rotY = XMMatrixRotationY(rotation);
 
@@ -587,13 +581,14 @@ void rotate()
 		XMStoreFloat4x4(&vertexCB.wv, view * rotY);
 		XMStoreFloat4x4(&vertexCB.objectToWorldM, rotY);
 
-
+		//Map(unlock) the constant buffer rewrite the constant buffer and Unmap(lock) the constant buffer
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
 		gDeviceContext->Map(gConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 		memcpy(mappedResource.pData, &vertexCB, sizeof(vertexCB));
 		gDeviceContext->Unmap(gConstantBuffer, 0);
 
+		//resets the rotation scalar after a full spin
 		if (rotation >= 6.283185312)
 		{
 			rotation = 0.0f;
@@ -602,6 +597,8 @@ void rotate()
 
 void rasterizer()
 {
+
+	//rasterizer settings
 
 	D3D11_RASTERIZER_DESC rastDesc;
 	rastDesc.CullMode = D3D11_CULL_BACK;
@@ -622,8 +619,12 @@ void rasterizer()
 
 void depthBuffer()
 {
+
+	//create depth stencil buffer
+
 	HRESULT result;
 	D3D11_DEPTH_STENCIL_DESC depthDesc; //default values
+
 	ZeroMemory(&depthDesc, sizeof(depthDesc));
 	//stencil operating of frontfacing
 	depthDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
@@ -649,6 +650,8 @@ void depthBuffer()
 
 	result = gDevice->CreateDepthStencilState(&depthDesc, &depthBufferState);
 
+	//Bind a texture to the depthstencil
+
 	D3D11_TEXTURE2D_DESC texture2DDesc;
 	ZeroMemory(&texture2DDesc, sizeof(texture2DDesc));
 	texture2DDesc.Width = (int)SCREEN_WIDTH;
@@ -666,6 +669,8 @@ void depthBuffer()
 	result = gDevice->CreateTexture2D(&texture2DDesc, NULL, &depthTexture2D);
 
 
+	//bind said texture and state to a buffer
+
 	D3D11_DEPTH_STENCIL_VIEW_DESC DSVDesc;
 	ZeroMemory(&DSVDesc, sizeof(DSVDesc));
 	DSVDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -682,6 +687,8 @@ void depthBuffer()
 
 void bthTexture()
 {
+
+	//binds the provided texture data to a 2Dtexture and creates a resourceview with said 2Dtexture
 
 	HRESULT result;
 
@@ -715,9 +722,9 @@ void bthTexture()
 void createLightSource()
 {
 
+	//creating static light source defined in world space and binds them to a constant buffer
+
 	HRESULT result;
-	//XMVECTOR temp = XMVectorSet(0, 0, -3, 1);
-	//XMStoreFloat4(&newLight.pos, XMVector4Transform(temp, view));
 	newLight.pos = XMFLOAT4(0.0f, 0.0f, -3.0f, 1.0f);
 	newLight.color = XMFLOAT4(1.0f, 1.0f, 1.0f, 7.0f);
 	
@@ -737,7 +744,6 @@ void createLightSource()
 
 	result = gDevice->CreateBuffer(&lightDesc, &lightData, &cLight);
 
+	//constant buffer is set to the pixel shader stage
 	gDeviceContext->PSSetConstantBuffers(0, 2, &cLight);
-	gDeviceContext->PSSetConstantBuffers(1, 2, &gConstantBuffer);
-
 }
