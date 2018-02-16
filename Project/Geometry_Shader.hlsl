@@ -12,6 +12,7 @@ struct gs_in
 {
 	float4 Position : POSITION;
 	float3 Normal : NORMAL;
+	float2 uvs : TEXCOORD;
 };
 
 struct gs_out
@@ -19,6 +20,7 @@ struct gs_out
 	float4 PositionCS : SV_Position;
 	float3 NormalWS : NORMALWS;
 	float4 PositionWS : POSITIONWS;
+	float2 uvs : TEXCOORD;
 };
 
 
@@ -35,9 +37,9 @@ void GS_Entry(in triangle gs_in inp[3], inout TriangleStream<gs_out> Triangles)
 		v1 = mul(inp[i].Position, wvp);
 
 		outp.PositionCS = v1;
-		outp.NormalWS = inp[i].Normal;
-		outp.PositionWS = inp[i].Position;
-
+		outp.NormalWS = mul(inp[i].Normal, world);
+		outp.PositionWS = mul(inp[i].Position, world);
+		outp.uvs = inp[i].uvs;
 		Triangles.Append(outp);
 	}
 
