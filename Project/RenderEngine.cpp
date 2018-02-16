@@ -1,5 +1,18 @@
 #include "RenderEngine.h"
 
+void RenderEngine::loaderTest()
+{
+	//TESTTEST
+
+	std::vector<XMFLOAT3> * vec1 = nullptr;
+	std::vector<XMFLOAT3> * vec2 = nullptr;
+	std::vector<XMFLOAT3> * vec3 =  nullptr;
+	ID3D11ShaderResourceView* srv = nullptr;
+	std::string temp_string = "box.OBJ";
+	std::wstring tem_string = L"boxP.png";
+	//this->objLoader.loadObjFile(temp_string, tem_string, vec1, vec2, vec3, srv);
+}
+
 bool RenderEngine::initiateEngine(HWND handle)
 {
 	/* 
@@ -129,6 +142,8 @@ bool RenderEngine::setupRTVs()
 			return false;
 		}
 	}
+
+
 
 	//https://msdn.microsoft.com/en-us/library/windows/desktop/ff476519(v=vs.85).aspx << CreateShaderResourceView
 	//https://msdn.microsoft.com/en-us/library/windows/desktop/ff476517(v=vs.85).aspx << CreateRenderTargetView
@@ -327,12 +342,18 @@ void RenderEngine::setupOMS()
 
 }
 
-void RenderEngine::setMatrixes(XMMATRIX world)
+
+ObjLoader * RenderEngine::getLoader()
+{
+	return &this->objLoader;
+}
+
+void RenderEngine::setMatrixes()
 {
 	//Projection
 	this->m_wvp.projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, this->WIDTH / this->HEIGHT, this->nearZ, this->farZ);
 	this->m_wvp.view = this->camera.getView();
-	this->m_wvp.world = world;
+	this->m_wvp.world = XMMatrixIdentity();
 	this->m_wvp.wvp = this->m_wvp.world * this->m_wvp.view * this->m_wvp.projection; // world*view*proj
 	this->m_wvp.vp = this->m_wvp.view * this->m_wvp.projection;
 }
@@ -342,11 +363,13 @@ void RenderEngine::update()
 	//update camera from keyboard and mouse
 	this->camera.getInput();
 	this->camera.update();
+
 }
 
-void RenderEngine::updateMatrixes()
+void RenderEngine::updateMatrixes( const XMMATRIX &in_world)
 {
-	//update with new view from camera object
+	//update with new view from camera and new world
+	this->m_wvp.world = in_world;
 	this->m_wvp.view = this->camera.getView();
 	this->m_wvp.wvp = this->m_wvp.world * this->m_wvp.view * this->m_wvp.projection; // world*view*proj
 	this->m_wvp.vp = this->m_wvp.view * this->m_wvp.projection;
@@ -410,69 +433,62 @@ void RenderEngine::layoutTopology(int in_topology, int in_layout)
 	//changes topology and layout depending on the object
 	switch (in_topology)
 	{
-	case TriangleList:
+	case topology::TriangleList:
 	{
 		this->deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	}
 		break;
+	case topology::TriangleStrip:
+	{
+		this->deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	}
+		break;
+	case topology::LineStrip:
+	{
+		this->deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
+	}
+		break;
+	case topology::LineList:
+	{
+		this->deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+	}
+		break;
+	case topology::TriangleStripAdj:
+		{
+			this->deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ);
+		}
+		break;
+	}
+
+
+
+
 
 	switch (in_layout)
 	{
-	case PN:
+	case layout::PN:
 	{
 		//Pos, Normal
 		this->deviceContext->IASetInputLayout(this->deferred_shading.getPNLayout());
-		this->PNActive = true;
-	}
+		this->debugFlag = layout::PN;
 		break;
-	case Pos:
+	}
+
+	case layout::Pos:
 	{
 		this->deviceContext->IASetInputLayout(this->deferred_shading.getPosLayout());
-		this->PNActive = false;
-	}
+		this->debugFlag = layout::Pos;
 		break;
 	}
-}
 
-void RenderEngine::setDrawCall(int nr_verticies)
-{
+	case layout::PTN:
+	{
+		this->deviceContext->IASetInputLayout(this->deferred_shading.getPTNLayout());
+		this->debugFlag = layout::PTN;
+		break;
+	}
 
-	//clears the rendertargets
-	this->clearRT();
-
-	//****geometry pass****\\
-
-	//set correct shaders
-	this->updateShaders(RenderEngine::Geometry_pass);
-
-	//set g-buffer textures as rendertargets
-	this->deviceContext->OMSetRenderTargets(this->VIEW_COUNT, this->RTViews.data(), this->depthStencilView);
-
-	//draw vertices
-	this->deviceContext->DrawIndexed(nr_verticies, 0, 0);
-
-	//****lightpass****\\
-
-	//set backbuffer as new rendertarget
-	this->deviceContext->OMSetRenderTargets(1, &this->back_buffer_view, this->depthStencilView);
-
-	//Set correct shaders
-	this->updateShaders(RenderEngine::Lightning_pass);
-
-	//Update Shader resource with texture views
-	this->deviceContext->PSSetShaderResources(0, this->VIEW_COUNT, this->SRViews.data());
-
-	//draw vertices for fullscreen quad
-	this->setQuad(); 
-	
-	//reset resourceviews, untie SRViews from the shader to be used as rendertargets next frame
-	this->deviceContext->PSSetShaderResources(0, this->VIEW_COUNT, this->null);
-
-	//Present backbuffer to screen
-	this->swapChain->Present(0, 0);
-
-
+	}
 }
 
 void RenderEngine::setQuad()
@@ -518,6 +534,9 @@ RenderEngine::RenderEngine(HWND handle, HINSTANCE hInstance, int WIDHT, int HEIG
 
 	this->deviceContext->GSSetShader(this->deferred_shading.getGeoShader(), nullptr, 0);
 
+	//objloader
+	this->objLoader.setDevice(this->device, this->deviceContext);
+
 	//setup lightpass quad
 	this->quad.setDevice(this->device);
 	this->quad.createBuffers();
@@ -528,6 +547,8 @@ RenderEngine::RenderEngine(HWND handle, HINSTANCE hInstance, int WIDHT, int HEIG
 	this->black[1] = 0.0f;
 	this->black[2] = 0.0f;
 	this->black[3] = 1.0f;
+
+	this->setMatrixes();
 }
 
 RenderEngine::~RenderEngine()
@@ -558,24 +579,109 @@ RenderEngine::~RenderEngine()
 
 void RenderEngine::Draw(Terrain * in_terrain)
 {
-	this->updateMatrixes();
+	this->updateMatrixes(in_terrain->getWorldMatrix());
 	this->mapCBs();
 	this->layoutTopology(in_terrain->getTopology(), in_terrain->getLayout());
 	this->updateBuffers(in_terrain->getVertexBuffer(), in_terrain->getIndexBuffer(), in_terrain->getSizeOfVertex());
-	this->setDrawCall(in_terrain->getNrOfVertices());
+	this->geometryPass(in_terrain->getNrOfVertices(), drawType::Indexed);
 
 }
 
 void RenderEngine::Draw(Geometry * in_geometry)
 {
-	this->updateMatrixes();
+	this->updateMatrixes(in_geometry->getWorld());
 	this->mapCBs();
 	this->updateBuffers(in_geometry->getVertexBuffer(), in_geometry->getIndexBuffer(), in_geometry->getSizeOfVertex());
 	this->layoutTopology(in_geometry->getTopology(), in_geometry->getLayout());
-	this->setDrawCall(in_geometry->getNrOfVertices());
+	this->geometryPass(in_geometry->getNrOfVertices(), drawType::Indexed);
+}
+
+void RenderEngine::Draw(Box * in_box)
+{
+	this->updateMatrixes(in_box->getWorldMatrix());
+	this->mapCBs();
+	this->updateBuffers(in_box->getVertexBuffer(), in_box->getIndexBuffer(), in_box->getSizeOfVertex());
+	this->layoutTopology(in_box->getTopology(), in_box->getLayout());
+	this->geometryPass(in_box->getNrOfVertices(), drawType::NonIndexed);
 }
 
 ID3D11Device * RenderEngine::getDevice()
 {
 	return this->device;
 }
+
+void RenderEngine::addSRV(ID3D11ShaderResourceView * in_srv)
+{
+	this->sampTexture = in_srv;
+}
+
+void RenderEngine::clearRenderTargets()
+{
+	//clears the rendertargets
+	this->clearRT();
+}
+
+void RenderEngine::presentSC()
+{
+	//Present backbuffer to screen
+	this->swapChain->Present(0, 0);
+}
+
+void RenderEngine::lightPass()
+{
+
+	//****lightpass****\\
+
+	//set backbuffer as new rendertarget
+	this->deviceContext->OMSetRenderTargets(1, &this->back_buffer_view, this->depthStencilView);
+
+	//Set correct shaders
+	this->updateShaders(RenderEngine::Lightning_pass);
+
+	//Update Shader resource with texture views
+	this->deviceContext->PSSetShaderResources(0, this->VIEW_COUNT, this->SRViews.data());
+
+	//draw vertices for fullscreen quad
+	this->setQuad();
+
+	//reset resourceviews, untie SRViews from the shader to be used as rendertargets next frame
+	this->deviceContext->PSSetShaderResources(0, this->VIEW_COUNT, this->null);
+
+	//this->presentSC();
+}
+
+void RenderEngine::geometryPass(int nr_verticies, int drawType)
+{
+	//this->clearRenderTargets();
+
+	//****geometry pass****\\
+
+	//set correct shaders
+	this->updateShaders(RenderEngine::Geometry_pass);
+
+	//set g-buffer textures as rendertargets
+	this->deviceContext->OMSetRenderTargets(this->VIEW_COUNT, this->RTViews.data(), this->depthStencilView);
+
+	//set texture to sample from
+	this->deviceContext->PSSetShaderResources(0, 1, &this->sampTexture);
+
+	//draw vertices
+	switch (drawType)
+	{
+	case drawType::Indexed:
+
+		this->deviceContext->DrawIndexed(nr_verticies, 0, 0);
+		break;
+	case drawType::NonIndexed:
+
+		this->deviceContext->Draw(nr_verticies, 0);
+		break;
+	default:
+
+		exit(-1);
+		break;
+	}
+
+}
+
+

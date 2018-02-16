@@ -1,5 +1,6 @@
 #include"RenderEngine.h"
 #include "windows.h"
+#include"ObjLoader.h"
 
 const int HEIGHT = 800;
 const int WIDTH = 800;
@@ -8,7 +9,7 @@ HWND InitWindow(HINSTANCE hInstance);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 void terrainPreSet(Terrain &terrain, RenderEngine &Engine);
-
+void boxPreSet(Box &box, RenderEngine &Engine);
 
 
 
@@ -20,11 +21,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 	RenderEngine Engine(wndHandle, hInstance, WIDTH, HEIGHT);
 	
 	//Heightmap
+	Box myBox;
+	myBox.setLoader(Engine.getLoader());
+	myBox.setDevice(Engine.getDevice());
+	myBox.initiate();
+	Engine.addSRV(myBox.getSRV());
 	Terrain myTerrain(Engine.getDevice());
-	terrainPreSet(myTerrain, Engine);
+	myTerrain.createBuffers();
 
-	//deferred Quad
-	
 
 
 	if (wndHandle)
@@ -39,8 +43,19 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 			}
 			else
 			{
+				//clear renderTargets
+				Engine.clearRenderTargets();
+
+				//draw scene
 				Engine.update();
 				Engine.Draw(&myTerrain);
+				Engine.Draw(&myBox);
+
+				//draw fullscreen quad and lights
+				Engine.lightPass();
+
+				//update swapChain
+				Engine.presentSC();
 			}
 
 		}
@@ -98,10 +113,4 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 
 	return DefWindowProc(hWnd, message, wParam, lParam);
-}
-
-void terrainPreSet(Terrain &terrain, RenderEngine &Engine)
-{
-	terrain.createBuffers();
-	Engine.setMatrixes(terrain.getWorldMatrix());
 }

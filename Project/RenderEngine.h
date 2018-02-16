@@ -10,6 +10,8 @@
 #include <windows.h>
 #include <vector>
 #include "Light.h"
+#include "ObjLoader.h"
+#include "Box.h"
 
 /*
 
@@ -23,15 +25,16 @@ class RenderEngine
 { 
 private:
 	//Variables
+	int debugFlag = 0;
+	enum drawType { Indexed, NonIndexed };
 
-	bool PNActive = false;
 	bool useRastBackCull = true;
 
 	int HEIGHT;
 	int WIDTH;
 	float nearZ = 0.1f;
 	float farZ = 10000.0f;
-	const int VIEW_COUNT = 2;
+	const int VIEW_COUNT = 3;
 
 	enum pass{Geometry_pass, Lightning_pass};
 
@@ -46,12 +49,10 @@ private:
 	};
 	matrix_wvp m_wvp;
 
-	//DeferredQuad
-	Quad quad;
 
-	//FPS
+	Quad quad;
+	ObjLoader objLoader;
 	Camera camera;
-	//deferred shaders
 	DeferredShaders deferred_shading;
 	Light lights;
 
@@ -72,6 +73,8 @@ private:
 
 	ID3D11ShaderResourceView* null[2] = { nullptr, nullptr };
 
+	ID3D11ShaderResourceView * sampTexture;
+
 	//backbuffer
 	ID3D11Texture2D * back_buffer_texture;
 	ID3D11RenderTargetView * back_buffer_view;
@@ -88,6 +91,9 @@ private:
 	ID3D11Buffer * cb_matrixes;
 
 private:
+
+	void loaderTest();
+
 	//start-up functions
 	bool initiateEngine(HWND handle);
 	bool setupRTVs();
@@ -96,28 +102,33 @@ private:
 	bool setupRasterizer();
 	bool createCBs();
 	void setupOMS();
-
+	void setMatrixes();
 
 	//Render functions
-	void updateMatrixes();
+	void updateMatrixes(const XMMATRIX &in_world);
 	void updateShaders(int in_pass);
 	void updateBuffers(ID3D11Buffer* in_VertexBuffer, ID3D11Buffer* in_IndexBuffer, float size_of_vertex);
 	void clearRT();
 	void mapCBs();
 	void layoutTopology(int in_topology, int in_layout);
-	void setDrawCall(int nr_verticies);
+	//void setDrawCall(int nr_verticies, int drawType);
 	void setQuad();
 public:
 
 	RenderEngine(HWND wndHandle, HINSTANCE hInstance, int WIDTH, int HEIGHT);
 	~RenderEngine();
 
-	void setMatrixes(XMMATRIX world);
+	ObjLoader * getLoader();
 	void update();
 	void Draw(Terrain * in_terrain); // draw called object
 	void Draw(Geometry * in_geometry);
-
+	void Draw(Box* in_box);
 	ID3D11Device* getDevice();
+	void addSRV(ID3D11ShaderResourceView * in_srv);
+	void clearRenderTargets();
+	void presentSC();
+	void lightPass();
+	void geometryPass(int nr_verticies, int drawType);
 };
 
 #endif

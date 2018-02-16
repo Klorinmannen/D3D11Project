@@ -44,7 +44,7 @@ public:
 	int getTopology();
 	int getLayout();
 	int getNrOfVertices();
-
+	XMMATRIX getWorld() const;
 };
 
 #endif // !GEOMETRY_H

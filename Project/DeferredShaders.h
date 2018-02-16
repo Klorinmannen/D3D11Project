@@ -28,6 +28,7 @@ private:
 	//inputLayouts
 	ID3D11InputLayout* inp_PN_layout;
 	ID3D11InputLayout* inp_Pos_layout;
+	ID3D11InputLayout* inp_PTN_layout;
 
 	float ptn_size;
 	float pn_size;
@@ -51,7 +52,7 @@ public:
 	ID3D11GeometryShader * getGeoShader() const;
 	ID3D11InputLayout* getPNLayout() const;
 	ID3D11InputLayout* getPosLayout() const;
-	
+	ID3D11InputLayout* getPTNLayout() const;
 	
 	float getPTNSize() const;
 	float getPNSize() const;

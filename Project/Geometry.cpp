@@ -94,3 +94,8 @@ int Geometry::getNrOfVertices()
 {
 	return this->vertex_number;
 }
+
+XMMATRIX Geometry::getWorld() const
+{
+	return  DirectX::XMMatrixScaling(1, 1, 1) *  DirectX::XMMatrixTranslation(-1500.0f, -1500.0f, -1500.0f);
+}

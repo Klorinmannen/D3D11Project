@@ -4,7 +4,7 @@
 #include <DirectXMath.h>
 
 //add more if needed depending on objects etc etc.
-enum topology{TriangleList = 0};
+enum topology{TriangleList, TriangleStrip, TriangleStripAdj, LineStrip, LineList};
 enum layout{PTN = 0, PC = 1, PN = 2, Pos = 3};
 
 namespace Structs
@@ -14,5 +14,8 @@ namespace Structs
 		DirectX::XMVECTOR v_Pos;
 		DirectX::XMVECTOR v_Color;
 	};
+
+
+
 }
 #endif

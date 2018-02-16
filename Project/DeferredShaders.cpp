@@ -26,8 +26,7 @@ void DeferredShaders::createVertexShaders()
 	{
 		exit(-1);
 	}
-
-	this->createInputLayout(layout::PN);
+	this->createInputLayout(layout::PTN);
 	this->shader_blob->Release();
 
 	this->compileLightPassShader(DeferredShaders::Vertex_S);
@@ -105,6 +104,11 @@ ID3D11InputLayout * DeferredShaders::getPNLayout() const
 ID3D11InputLayout * DeferredShaders::getPosLayout() const
 {
 	return this->inp_Pos_layout;
+}
+
+ID3D11InputLayout * DeferredShaders::getPTNLayout() const
+{
+	return this->inp_PTN_layout;
 }
 
 float DeferredShaders::getPTNSize() const
@@ -193,34 +197,36 @@ void DeferredShaders::compileLightPassShader(type in_type)
 
 void DeferredShaders::createInputLayout(int in_type)
 {
+	HRESULT hr;
 	switch (in_type)
 	{
-	case layout::PN:
-	{
-		D3D11_INPUT_ELEMENT_DESC dscPN[] = {
-											{
-												"POSITION",
-												0,
-												DXGI_FORMAT_R32G32B32_FLOAT,
-												0,
-												0,
-												D3D11_INPUT_PER_VERTEX_DATA,
-												0
-											},
-											{
-												"NORMAL",
-												0,
-												DXGI_FORMAT_R32G32B32_FLOAT,
-												0,
-												12,
-												D3D11_INPUT_PER_VERTEX_DATA,
-												0
-											}
-		};
+	//case layout::PN:
+	//{
+	//	D3D11_INPUT_ELEMENT_DESC dscPN[] = {
+	//										{
+	//											"POSITION",
+	//											0,
+	//											DXGI_FORMAT_R32G32B32_FLOAT,
+	//											0,
+	//											0,
+	//											D3D11_INPUT_PER_VERTEX_DATA,
+	//											0
+	//										},
+	//										{
+	//											"NORMAL",
+	//											0,
+	//											DXGI_FORMAT_R32G32B32_FLOAT,
+	//											0,
+	//											12,
+	//											D3D11_INPUT_PER_VERTEX_DATA,
+	//											0
+	//										}
+	//										};
 
-		this->device->CreateInputLayout(dscPN, ARRAYSIZE(dscPN), this->shader_blob->GetBufferPointer(), this->shader_blob->GetBufferSize(), &this->inp_PN_layout);
-	}
-		break;
+	//hr = this->device->CreateInputLayout(dscPN, ARRAYSIZE(dscPN), this->shader_blob->GetBufferPointer(), this->shader_blob->GetBufferSize(), &this->inp_PN_layout);
+	//	break;
+	//}
+
 	
 	case layout::Pos:
 	{
@@ -234,9 +240,43 @@ void DeferredShaders::createInputLayout(int in_type)
 												D3D11_INPUT_PER_VERTEX_DATA,
 												0
 											},
-		};
+											};
 
-		this->device->CreateInputLayout(dscPos, ARRAYSIZE(dscPos), this->shader_blob->GetBufferPointer(), this->shader_blob->GetBufferSize(), &this->inp_Pos_layout);
+	hr = this->device->CreateInputLayout(dscPos, ARRAYSIZE(dscPos), this->shader_blob->GetBufferPointer(), this->shader_blob->GetBufferSize(), &this->inp_Pos_layout);
+		break;
+	}
+	case layout::PTN:
+	{
+	D3D11_INPUT_ELEMENT_DESC dscPTN[] = {
+										{
+											"POSITION",
+											0,
+											DXGI_FORMAT_R32G32B32_FLOAT,
+											0,
+											0,
+											D3D11_INPUT_PER_VERTEX_DATA,
+											0
+										},
+										{
+											"NORMAL",
+											0,
+											DXGI_FORMAT_R32G32B32_FLOAT,
+											0,
+											12,
+											D3D11_INPUT_PER_VERTEX_DATA,
+											0
+										},
+										{
+											"TEXCOORD",
+											0,
+											DXGI_FORMAT_R32G32_FLOAT,
+											0,
+											24,
+											D3D11_INPUT_PER_VERTEX_DATA,
+											0
+										}
+										};
+	hr = this->device->CreateInputLayout(dscPTN, ARRAYSIZE(dscPTN), this->shader_blob->GetBufferPointer(), this->shader_blob->GetBufferSize(), &this->inp_PTN_layout);
 		break;
 	}
 	}

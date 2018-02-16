@@ -13,7 +13,7 @@ Terrain::Terrain(ID3D11Device * device) : Drawable()
 	this->vBuffer = nullptr;
 	this->iBuffer = nullptr;
 
-	this->t_layout = layout::PN; //ändra när det är dags
+	this->t_layout = layout::PTN; //ändra när det är dags
 	this->t_topology = topology::TriangleList;
 	this->loadHeightMap();
 }
