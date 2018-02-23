@@ -12,83 +12,44 @@ DeferredShaders::~DeferredShaders()
 	//RELEASE THE KRAKENS(com-objects)
 }
 
-void DeferredShaders::createVertexShaders()
+ID3D11VertexShader * DeferredShaders::getGeometryPassVS() const
 {
-	HRESULT hresult;
-
-	this->compileGeometryPassShader(DeferredShaders::Vertex_S);
-	hresult = this->device->CreateVertexShader(this->shader_blob->GetBufferPointer(),
-												this->shader_blob->GetBufferSize(),
-												NULL,
-												&this->geometry_vertex_shader);
-	
-	if (FAILED(hresult))
-	{
-		exit(-1);
-	}
-	this->createInputLayout(layout::PTN);
-	this->shader_blob->Release();
-
-	this->compileLightPassShader(DeferredShaders::Vertex_S);
-	hresult = this->device->CreateVertexShader(this->shader_blob->GetBufferPointer(),
-												this->shader_blob->GetBufferSize(),
-												NULL,
-												&this->light_vertex_shader);
-
-	if (FAILED(hresult))
-	{
-		exit(-1);
-	}
-
-	this->createInputLayout(layout::Pos);
-	this->shader_blob->Release();
+	return this->GeometryPass_VS;
 }
 
-void DeferredShaders::createPixelShaders()
+ID3D11PixelShader * DeferredShaders::getGeometryTerrainPS() const
 {
-	HRESULT hresult;
-
-	this->compileGeometryPassShader(DeferredShaders::Pixel_S);
-	hresult = this->device->CreatePixelShader(this->shader_blob->GetBufferPointer(), 
-												this->shader_blob->GetBufferSize(),
-												NULL, 
-												&this->geometry_pixel_shader);
-	if (FAILED(hresult))
-	{
-		exit(-1);
-	}
-	this->shader_blob->Release();
-
-	this->compileLightPassShader(DeferredShaders::Pixel_S);
-	hresult = this->device->CreatePixelShader(this->shader_blob->GetBufferPointer(),
-												this->shader_blob->GetBufferSize(),
-												NULL,
-												&this->light_pixel_shader);
-	if (FAILED(hresult))
-	{
-		exit(-1);
-	}
-	this->shader_blob->Release();
+	return this->GeometryPassTerrain_PS;
 }
 
-ID3D11VertexShader * DeferredShaders::getGeoVS() 
+ID3D11PixelShader * DeferredShaders::getGeometryBoxPS() const
 {
-	return this->geometry_vertex_shader;
+	return this->GeometryPassBox_PS;
 }
 
-ID3D11PixelShader * DeferredShaders::getGeoPS() const
+ID3D11PixelShader * DeferredShaders::getGeoemtryPlanePS() const
 {
-	return this->geometry_pixel_shader;
+	return this->GeometryPassPlane_PS;
+}
+
+ID3D11VertexShader * DeferredShaders::getGeometryPlaneVS() const
+{
+	return this->GeometryPassPlane_VS;
+}
+
+ID3D11GeometryShader * DeferredShaders::getGeomtryPlaneGS() const
+{
+	return this->GeometryPassPlane_GS;
 }
 
 ID3D11VertexShader * DeferredShaders::getLightVS() const
 {
-	return this->light_vertex_shader;
+	return this->LightPass_VS;
 }
 
 ID3D11PixelShader * DeferredShaders::getLightPS() const
 {
-	return this->light_pixel_shader;
+	return this->LightPass_PS;
 }
 
 ID3D11GeometryShader * DeferredShaders::getGeoShader() const
@@ -96,9 +57,9 @@ ID3D11GeometryShader * DeferredShaders::getGeoShader() const
 	return this->geometry_Shader;
 }
 
-ID3D11InputLayout * DeferredShaders::getPNLayout() const
+ID3D11InputLayout * DeferredShaders::getPTLayout() const
 {
-	return this->inp_PN_layout;
+	return this->inp_PT_layout;
 }
 
 ID3D11InputLayout * DeferredShaders::getPosLayout() const
@@ -131,122 +92,37 @@ void DeferredShaders::setDevice(ID3D11Device * in_device)
 	this->device = in_device;
 }
 
-void DeferredShaders::compileGeometryPassShader(type in_type)
-{
-	switch (in_type)
-	{
-	case DeferredShaders::Vertex_S:
-		this->hResult = D3DCompileFromFile(
-											L"Geometry_VS.hlsl", 
-											nullptr,		
-											nullptr,		
-											"VS_Entry",		
-											"vs_5_0",		
-											D3DCOMPILE_DEBUG,	
-											0,				
-											&this->shader_blob,				
-											&this->error_blob		
-		);
-		break;
-	case DeferredShaders::Pixel_S:
-		this->hResult = D3DCompileFromFile(
-											L"Geometry_PS.hlsl",
-											nullptr,
-											nullptr,
-											"PS_Entry",
-											"ps_5_0",
-											D3DCOMPILE_DEBUG,
-											0,
-											&this->shader_blob,
-											&this->error_blob
-		);
-		break;
-	}
-}
-
-void DeferredShaders::compileLightPassShader(type in_type)
-{
-	switch (in_type)
-	{
-	case DeferredShaders::Vertex_S:
-		this->hResult = D3DCompileFromFile( L"Light_VS.hlsl",
-											nullptr,
-											nullptr,
-											"VS_Entry",
-											"vs_5_0",
-											D3DCOMPILE_DEBUG,
-											0,
-											&this->shader_blob,
-											&this->error_blob
-		);
-		break;
-	case DeferredShaders::Pixel_S:
-		this->hResult = D3DCompileFromFile( L"Light_PS.hlsl",
-											nullptr,
-											nullptr,
-											"PS_Entry",
-											"ps_5_0",
-											D3DCOMPILE_DEBUG,
-											0,
-											&this->shader_blob,
-											&this->error_blob
-		);
-		break;
-	}
-}
-
-void DeferredShaders::createInputLayout(int in_type)
+void DeferredShaders::compileVertexShaders()
 {
 	HRESULT hr;
-	switch (in_type)
+
+
+	//create vertex shader for geometry pass
+	hr = D3DCompileFromFile(	L"Geometry_Pass_VS.hlsl",
+										nullptr,
+										nullptr,
+										"VS_Entry",
+										"vs_5_0",
+										D3DCOMPILE_DEBUG,
+										0,
+										&this->shader_blob,
+										&this->error_blob);
+
+	if (FAILED(hr))
 	{
-	//case layout::PN:
-	//{
-	//	D3D11_INPUT_ELEMENT_DESC dscPN[] = {
-	//										{
-	//											"POSITION",
-	//											0,
-	//											DXGI_FORMAT_R32G32B32_FLOAT,
-	//											0,
-	//											0,
-	//											D3D11_INPUT_PER_VERTEX_DATA,
-	//											0
-	//										},
-	//										{
-	//											"NORMAL",
-	//											0,
-	//											DXGI_FORMAT_R32G32B32_FLOAT,
-	//											0,
-	//											12,
-	//											D3D11_INPUT_PER_VERTEX_DATA,
-	//											0
-	//										}
-	//										};
-
-	//hr = this->device->CreateInputLayout(dscPN, ARRAYSIZE(dscPN), this->shader_blob->GetBufferPointer(), this->shader_blob->GetBufferSize(), &this->inp_PN_layout);
-	//	break;
-	//}
-
-	
-	case layout::Pos:
-	{
-		D3D11_INPUT_ELEMENT_DESC dscPos[] = {
-											{
-												"POSITION",
-												0,
-												DXGI_FORMAT_R32G32B32_FLOAT,
-												0,
-												0,
-												D3D11_INPUT_PER_VERTEX_DATA,
-												0
-											},
-											};
-
-	hr = this->device->CreateInputLayout(dscPos, ARRAYSIZE(dscPos), this->shader_blob->GetBufferPointer(), this->shader_blob->GetBufferSize(), &this->inp_Pos_layout);
-		break;
+		exit(-1);
 	}
-	case layout::PTN:
+
+	hr = this->device->CreateVertexShader(	this->shader_blob->GetBufferPointer(),
+											this->shader_blob->GetBufferSize(),
+											NULL,
+											&this->GeometryPass_VS);
+
+	if (FAILED(hr))
 	{
+		exit(-1);
+	}
+
 	D3D11_INPUT_ELEMENT_DESC dscPTN[] = {
 										{
 											"POSITION",
@@ -277,40 +153,283 @@ void DeferredShaders::createInputLayout(int in_type)
 										}
 										};
 	hr = this->device->CreateInputLayout(dscPTN, ARRAYSIZE(dscPTN), this->shader_blob->GetBufferPointer(), this->shader_blob->GetBufferSize(), &this->inp_PTN_layout);
-		break;
-	}
-	}
 
-}
+	this->shader_blob->Release();
 
-void DeferredShaders::createGeometryShader()
-{
-	HRESULT hresult;
 
-	this->compileGeometryShader();
-	hresult = this->device->CreateGeometryShader(this->shader_blob->GetBufferPointer(), 
-													this->shader_blob->GetBufferSize(), 
-													NULL, 
-													&this->geometry_Shader);
-	if (FAILED(hresult))
+	//create vertex shader for light pass
+
+	hr = D3DCompileFromFile(L"Light_VS.hlsl",
+							nullptr,
+							nullptr,
+							"VS_Entry",
+							"vs_5_0",
+							D3DCOMPILE_DEBUG,
+							0,
+							&this->shader_blob,
+							&this->error_blob);
+
+	if (FAILED(hr))
 	{
 		exit(-1);
 	}
+
+	hr = this->device->CreateVertexShader(	this->shader_blob->GetBufferPointer(),
+											this->shader_blob->GetBufferSize(),
+											NULL,
+											&this->LightPass_VS);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	D3D11_INPUT_ELEMENT_DESC dscPos[] = {
+										{
+											"POSITION",
+											0,
+											DXGI_FORMAT_R32G32B32_FLOAT,
+											0,
+											0,
+											D3D11_INPUT_PER_VERTEX_DATA,
+											0
+										},
+										};
+
+	hr = this->device->CreateInputLayout(dscPos, ARRAYSIZE(dscPos), this->shader_blob->GetBufferPointer(), this->shader_blob->GetBufferSize(), &this->inp_Pos_layout);
+
 	this->shader_blob->Release();
 
+	//create vertex shader for plane geometrypass
+
+	hr = D3DCompileFromFile(L"GeometryPassPlane_VS.hlsl",
+							nullptr,
+							nullptr,
+							"VS_Entry",
+							"vs_5_0",
+							D3DCOMPILE_DEBUG,
+							0,
+							&this->shader_blob,
+							&this->error_blob);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	hr = this->device->CreateVertexShader(	this->shader_blob->GetBufferPointer(),
+											this->shader_blob->GetBufferSize(),
+											NULL,
+											&this->GeometryPassPlane_VS);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+		D3D11_INPUT_ELEMENT_DESC dscPT[] = {
+											{
+												"POSITION",
+												0,
+												DXGI_FORMAT_R32G32B32_FLOAT,
+												0,
+												0,
+												D3D11_INPUT_PER_VERTEX_DATA,
+												0
+											},
+											{
+												"TEXCOORD",
+												0,
+												DXGI_FORMAT_R32G32_FLOAT,
+												0,
+												12,
+												D3D11_INPUT_PER_VERTEX_DATA,
+												0
+											},
+											};
+
+	hr = this->device->CreateInputLayout(dscPT, ARRAYSIZE(dscPT), this->shader_blob->GetBufferPointer(), this->shader_blob->GetBufferSize(), &this->inp_PT_layout);
+
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+
+	this->shader_blob->Release();
 }
 
-void DeferredShaders::compileGeometryShader()
+void DeferredShaders::compilePixelShaders()
 {
-	this->hResult = D3DCompileFromFile(
-										L"Geometry_Shader.hlsl",
-										nullptr,
-										nullptr,
-										"GS_Entry",
-										"gs_5_0",
-										D3DCOMPILE_DEBUG,
-										0,
-										&this->shader_blob,
-										&this->error_blob
-	);
+	HRESULT hr;
+	
+	//Create Geometry pass pixel shader 
+	hr = D3DCompileFromFile(L"GeometryPassTerrain_PS.hlsl",
+							nullptr,
+							nullptr,
+							"PS_Entry",
+							"ps_5_0",
+							D3DCOMPILE_DEBUG,
+							0,
+							&this->shader_blob,
+							&this->error_blob);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	hr = this->device->CreatePixelShader	(this->shader_blob->GetBufferPointer(),
+											this->shader_blob->GetBufferSize(),
+											NULL,
+											&this->GeometryPassTerrain_PS);
+	
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	this->shader_blob->Release();
+
+	hr = D3DCompileFromFile(L"GeometryPassBox_PS.hlsl",
+							nullptr,
+							nullptr,
+							"PS_Entry",
+							"ps_5_0",
+							D3DCOMPILE_DEBUG,
+							0,
+							&this->shader_blob,
+							&this->error_blob);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	hr = this->device->CreatePixelShader(	this->shader_blob->GetBufferPointer(),
+											this->shader_blob->GetBufferSize(),
+											NULL,
+											&this->GeometryPassBox_PS);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	this->shader_blob->Release();
+
+	//create light pass pixel shaders
+	hr = D3DCompileFromFile(L"LightPass_PS.hlsl",
+							nullptr,
+							nullptr,
+							"PS_Entry",
+							"ps_5_0",
+							D3DCOMPILE_DEBUG,
+							0,
+							&this->shader_blob,
+							&this->error_blob);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	hr = this->device->CreatePixelShader(	this->shader_blob->GetBufferPointer(),
+											this->shader_blob->GetBufferSize(),
+											NULL,
+											&this->LightPass_PS);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	this->shader_blob->Release();
+
+	//create plane pixel shader
+	hr = D3DCompileFromFile(L"GeometryPassPlane_PS.hlsl",
+							nullptr,
+							nullptr,
+							"PS_Entry",
+							"ps_5_0",
+							D3DCOMPILE_DEBUG,
+							0,
+							&this->shader_blob,
+							&this->error_blob);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	hr = this->device->CreatePixelShader(	this->shader_blob->GetBufferPointer(),
+											this->shader_blob->GetBufferSize(),
+											NULL,
+											&this->GeometryPassPlane_PS);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	this->shader_blob->Release();
+}
+
+void DeferredShaders::compileGeometryShaders()
+{
+	HRESULT hr;
+	hr = D3DCompileFromFile(L"Geometry_Shader.hlsl",
+							nullptr,
+							nullptr,
+							"GS_Entry",
+							"gs_5_0",
+							D3DCOMPILE_DEBUG,
+							0,
+							&this->shader_blob,
+							&this->error_blob);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	hr = this->device->CreateGeometryShader(this->shader_blob->GetBufferPointer(),
+											this->shader_blob->GetBufferSize(),
+											NULL,
+											&this->geometry_Shader);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	this->shader_blob->Release();
+
+	hr = D3DCompileFromFile(L"GeometryPassPlane_GS.hlsl",
+							nullptr,
+							nullptr,
+							"GS_Entry",
+							"gs_5_0",
+							D3DCOMPILE_DEBUG,
+							0,
+							&this->shader_blob,
+							&this->error_blob);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	hr = this->device->CreateGeometryShader(this->shader_blob->GetBufferPointer(),
+											this->shader_blob->GetBufferSize(),
+											NULL,
+											&this->GeometryPassPlane_GS);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	this->shader_blob->Release();
 }

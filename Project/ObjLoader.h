@@ -11,6 +11,7 @@ using namespace DirectX;
 class ObjLoader
 {
 private:
+	int face = 0;
 
 	ID3D11Device * device;
 	ID3D11DeviceContext * context;
@@ -43,6 +44,7 @@ private:
 	bool paraseObj(std::string & in_obj_name);
 	bool getSRV(std::wstring & in_texture_name);
 	void buildIndex();
+	void triangulate();
 public:
 	ObjLoader();
 	~ObjLoader();

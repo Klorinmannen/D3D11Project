@@ -5,6 +5,12 @@ Terrain::Terrain(ID3D11Device * device) : Drawable()
 	this->device = device;
 	this->nrOfFaces = 0;
 	this->nrOfVertices = 0;
+	this->id = -1;
+
+	CoInitializeEx(NULL, COINIT_MULTITHREADED);
+
+	this->scalingValue = 400.0f;
+	this->offsetValue = -1500.0f;
 
 	this->hM.height = 0;
 	this->hM.width = 0;
@@ -46,7 +52,7 @@ bool Terrain::loadHeightMap() {
 
 	if (file == nullptr) {
 
-		exit(-1); //haha :D den lurar vem som helst
+		exit(-1);
 
 	}
 	else {
@@ -74,25 +80,30 @@ bool Terrain::loadHeightMap() {
 		//Close file
 		fclose(file);
 
-		//Init heightMap
-		this->hM.vertexData = new DirectX::XMFLOAT3[this->hM.width * this->hM.height];
+		//Init vertexData array
+		this->hM.vertexData = new DirectX::XMFLOAT3*[this->hM.height];
+
+		for (int i = 0; i < this->hM.height; i++) {
+
+			this->hM.vertexData[i] = new DirectX::XMFLOAT3[this->hM.width];
+
+		}
 
 		//Read data from greyscale image, only need value from one color channel
 		int k = 0;
 		float heightFactor = 10.0f;
 
 		//Read imageData into heigthMap array
-		for (int j = 0; j < hM.height; j++) {
+		for (int i = 0; i < hM.height; i++) {
 
-			for (int i = 0; i < hM.width; i++) {
+			for (int j = 0; j < hM.width; j++) {
 
 				heightValue = bmImage[k];		//Get heightValue(R)
-				index = (hM.height * j) + i;	//Find correct index
 
-				//Store coords
-				this->hM.vertexData[index].x = (float)j;
-				this->hM.vertexData[index].y = (float)heightValue / heightFactor;
-				this->hM.vertexData[index].z = (float)i;
+												//Store coords
+				this->hM.vertexData[i][j].x = (float)j * this->scale;
+				this->hM.vertexData[i][j].y = ((float)heightValue / heightFactor) * this->scale;
+				this->hM.vertexData[i][j].z = (float)i * this->scale;
 
 				//Skip ahead of the 2 other color channels(GB)
 				k += 3;
@@ -107,13 +118,19 @@ bool Terrain::loadHeightMap() {
 	}
 
 	return result;
-
-
 }
 
 void Terrain::createBuffers() {
 
+	//Vertex structure
+	//struct Vertex {
 
+	//	DirectX::XMFLOAT3 pos;
+	//	DirectX::XMFLOAT2 texUV;
+	//	DirectX::XMFLOAT3 normal;
+
+	//};
+	this->valuesPerVertex = 8;
 
 	//Set number of vertices and faces
 	this->nrOfVertices = this->hM.height * this->hM.width;
@@ -121,61 +138,53 @@ void Terrain::createBuffers() {
 
 	//Create vector and store all vertex positions and a default normal
 	std::vector<Vertex> vec(this->nrOfVertices);
+	float uIndex = 0.0f;
+	float vIndex = 0.0f;
 
-	for (DWORD i = 0; i < this->hM.height; ++i) {
+	for (int i = 0; i < this->hM.height; i++) {
 
-		for (DWORD j = 0; j < this->hM.width; ++j) {
+		for (int j = 0; j < this->hM.width; j++) {
 
-			vec[(i * this->hM.height) + j].pos = this->hM.vertexData[(i* this->hM.height) + j];
-			vec[(i * this->hM.height) + j].normal = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
+			//Set position and temp normal
+			vec[(i * this->hM.width) + j].pos = this->hM.vertexData[i][j];
+			vec[(i * this->hM.width) + j].normal = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
+
+			//Set texture coordinates
+			vec[(i * this->hM.width) + j].uvs = DirectX::XMFLOAT2(uIndex, vIndex);
+
+			//Update uIndex
+			uIndex += 1.0f;
 
 		}
+
+		//Update u/v Index
+		uIndex = 0.0f;
+		vIndex += 1.0f;
 
 	}
 
-	//Create vector and store all index positions and texture coords
-	std::vector<DWORD> indices(this->nrOfFaces * 3);
+	//Create vector that stores all index positions
+	std::vector<int> indices(this->nrOfFaces * 3);
 	int k = 0;
-	int texUIndex = 0;
-	int texVIndex = 0;
 
-	for (DWORD i = 0; i < (this->hM.height - 1); i++) {
+	//Handles a quad at a time, sets index
+	for (int i = 0; i < (this->hM.height - 1); i++) {
 
-		for (DWORD j = 0; j < (this->hM.width - 1); j++) {
-			//Triangle 1
-			//Bottom left of quad
-			indices[k] = (i * this->hM.width) + j;
-			//vec[(i * this->hM.width) + j].tC = DirectX::XMFLOAT2(texUIndex + 0.0f, texVIndex + 1.0f);
+		for (int j = 0; j < (this->hM.width - 1); j++) {
 
-			//Bottom Right of quad
-			indices[k + 1] = (i * this->hM.width) + j + 1;
-			//vec[(i * this->hM.width) + j + 1].tC = DirectX::XMFLOAT2(texUIndex + 1.0f, texVIndex + 1.0f);
+			//Set indices
+			indices[k] = (i * this->hM.width) + j;					//Bottom left
+			indices[k + 1] = ((i + 1) * this->hM.width) + j;		//Top left
+			indices[k + 2] = (i * this->hM.width) + (j + 1);		//Bottom Right
 
-			//Top left of quad
-			indices[k + 2] = ((i + 1) * this->hM.width) + j;
-			//vec[((i + 1) * this->hM.width) + j].tC = DirectX::XMFLOAT2(texUIndex + 0.0f, texVIndex + 0.0f);
+			indices[k + 3] = (i * this->hM.width) + (j + 1);		//Bottom Right
+			indices[k + 4] = ((i + 1) * this->hM.width) + j;		//Top Left
+			indices[k + 5] = ((i + 1) * this->hM.width) + (j + 1);	//Top Right
 
-			//Triangle 2
-			//Top left of quad
-			indices[k + 3] = ((i + 1) * this->hM.width) + j;
-			//vec[((i + 1) * this->hM.width) + j].tC = DirectX::XMFLOAT2(texUIndex + 0.0f, texVIndex + 0.0f);
-
-			//Bottom right  of quad
-			indices[k + 4] = (i * this->hM.width) + j + 1;
-			//vec[(i * this->hM.width) + j + 1].tC = DirectX::XMFLOAT2(texUIndex + 1.0f, texVIndex + 1.0f);
-
-			//Top right of quad
-			indices[k + 5] = ((i + 1) * this->hM.width) + j + 1;
-			//vec[((i + 1) * this->hM.width) + j + 1].tC = DirectX::XMFLOAT2(texUIndex + 1.0f, texVIndex + 0.0f);
-
-			//Skip to next quad
+																	//Go to next two triangles
 			k += 6;
-			texUIndex++;
 
 		}
-
-		texUIndex = 0;
-		texVIndex++;
 
 	}
 
@@ -189,12 +198,12 @@ void Terrain::createBuffers() {
 	DirectX::XMVECTOR e2 = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 
 	//Compute faceNormals
-	for (int i = 0; i < this->nrOfFaces; ++i) {
+	for (int i = 0; i < this->nrOfFaces; i++) {
 
 		//Get vector of one edge of triangle(0,2)
-		vecX = vec[indices[i * 3]].pos.x - vec[indices[(i * 3) + 2]].pos.x;
-		vecY = vec[indices[i * 3]].pos.y - vec[indices[(i * 3) + 2]].pos.y;
-		vecZ = vec[indices[i * 3]].pos.z - vec[indices[(i * 3) + 2]].pos.z;
+		vecX = vec[indices[(i * 3)]].pos.x - vec[indices[(i * 3) + 2]].pos.x;
+		vecY = vec[indices[(i * 3)]].pos.y - vec[indices[(i * 3) + 2]].pos.y;
+		vecZ = vec[indices[(i * 3)]].pos.z - vec[indices[(i * 3) + 2]].pos.z;
 		e1 = DirectX::XMVectorSet(vecX, vecY, vecZ, 0.0f);
 
 		//Second edge(2, 1)
@@ -205,6 +214,9 @@ void Terrain::createBuffers() {
 
 		//Cross product of the two edges gives the un normalized face normal
 		DirectX::XMStoreFloat3(&unNormalized, DirectX::XMVector3Cross(e1, e2));
+		unNormalized.x = -unNormalized.x;
+		unNormalized.y = -unNormalized.y;
+		unNormalized.z = -unNormalized.z;
 		tNormal.push_back(unNormalized);
 
 
@@ -215,12 +227,12 @@ void Terrain::createBuffers() {
 	int faceUse = 0;
 	float tX = 0.0f, tY = 0.0f, tZ = 0.0f;
 
-	for (int i = 0; i < this->nrOfVertices; ++i) {
+	for (int i = 0; i < this->nrOfVertices; i++) {
 
-		//Check which triangle use the vertex
-		for (int j = 0; j < this->nrOfFaces; ++j) {
+		//Check what triangle uses the vertex
+		for (int j = 0; j < this->nrOfFaces; j++) {
 
-			if (indices[j * 3] == i ||
+			if (indices[(j * 3)] == i ||
 				indices[(j * 3) + 1] == i ||
 				indices[(j * 3) + 2] == i) {
 
@@ -237,7 +249,8 @@ void Terrain::createBuffers() {
 		}
 
 		//Get normal by dividing normalSum with the number of faces sharing the vertex
-		normalSum = DirectX::XMVectorDivide(normalSum, DirectX::XMVectorSet(faceUse, faceUse, faceUse, faceUse));
+		DirectX::XMVECTOR temp = { faceUse, faceUse, faceUse, faceUse };
+		normalSum = DirectX::XMVectorDivide(normalSum, temp);
 
 		//Normalize sum
 		normalSum = DirectX::XMVector3Normalize(normalSum);
@@ -277,7 +290,7 @@ void Terrain::createBuffers() {
 
 	//Flags
 	iBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	iBufferDesc.ByteWidth = sizeof(DWORD) * (this->nrOfFaces * 3);
+	iBufferDesc.ByteWidth = sizeof(int) * (this->nrOfFaces * 3);
 	iBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	iBufferDesc.CPUAccessFlags = 0;
 	iBufferDesc.MiscFlags = 0;
@@ -288,6 +301,57 @@ void Terrain::createBuffers() {
 
 	iBufferData.pSysMem = &indices[0];
 	this->device->CreateBuffer(&iBufferDesc, &iBufferData, &this->iBuffer);
+}
+
+void Terrain::createTexture() 
+{
+
+	//Create Grass texture view
+	HRESULT hr = DirectX::CreateWICTextureFromFile(this->device, L"Textures//Grass.png",
+		nullptr, &this->grassView);
+
+	if (FAILED(hr)) {
+
+		exit(-1);
+
+	}
+	this->nrOfSRVS++;
+
+	//Create stone texture
+	hr = DirectX::CreateWICTextureFromFile(this->device, L"Textures//stone.png",
+		nullptr, &this->stoneView);
+
+	if (FAILED(hr)) {
+
+		exit(-1);
+
+	}
+	this->nrOfSRVS++;
+
+	this->srv[0] = this->grassView;
+	this->srv[1] = this->stoneView;
+
+}
+
+void Terrain::createSamplerState() 
+{
+
+	//Create Desc
+	D3D11_SAMPLER_DESC sampDesc;
+	ZeroMemory(&sampDesc, sizeof(sampDesc));
+
+	//Flags
+	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.MaxAnisotropy = 1;
+	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	sampDesc.MinLOD = 0;
+	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+	//Create samplerState
+	device->CreateSamplerState(&sampDesc, &this->sampState);
 
 }
 
@@ -330,7 +394,32 @@ int Terrain::getLayout()
 	return this->t_layout;
 }
 
+int Terrain::getID()
+{
+	return this->id;
+}
+
+int Terrain::getNrOfSRVS()
+{
+	return this->nrOfSRVS;
+}
+
+void Terrain::setID(int in_id)
+{
+	this->id = in_id;
+}
+
 XMMATRIX Terrain::getWorldMatrix() const
 {
-	return DirectX::XMMatrixScaling(200, 60, 200) *  DirectX::XMMatrixTranslation(-1500.0f, -1500.0f, -1500.0f);
+	return this->world;
+}
+
+ID3D11ShaderResourceView ** Terrain::getSRV()
+{
+	return this->srv;
+}
+
+ID3D11SamplerState * Terrain::getSamplerState()
+{
+	return this->sampState;
 }

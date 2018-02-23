@@ -50,8 +50,10 @@ bool RenderEngine::initiateEngine(HWND handle)
 
 	//MSDN example
 	//used to set the backbuffer at the OMS stage
-	this->swapChain->GetBuffer(0, __uuidof(this->back_buffer_texture), reinterpret_cast<void**>(&this->back_buffer_texture));
-	hresult = this->device->CreateRenderTargetView(this->back_buffer_texture, NULL, &this->back_buffer_view);
+	ID3D11Texture2D * back_buffer_texture;
+
+	this->swapChain->GetBuffer(0, __uuidof(back_buffer_texture), reinterpret_cast<void**>(&back_buffer_texture));
+	hresult = this->device->CreateRenderTargetView(back_buffer_texture, NULL, &this->back_buffer_view);
 	if (FAILED(hresult))
 	{
 		exit(-1);
@@ -71,6 +73,9 @@ bool RenderEngine::initiateEngine(HWND handle)
 	this->setupRasterizer();
 	this->setupOMS();
 
+	//release com object
+	back_buffer_texture->Release();
+
 	return true;
 }
 
@@ -80,7 +85,9 @@ bool RenderEngine::setupRTVs()
 	D3D11_TEXTURE2D_DESC texture_desc;
 	D3D11_RENDER_TARGET_VIEW_DESC rtv_desc;
 	D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc;
+	std::vector<ID3D11Texture2D*> RTTextures;
 
+	ID3D11Texture2D* t_entry = nullptr; 
 
 	//wnds msgs
 	HRESULT hResult;
@@ -100,13 +107,14 @@ bool RenderEngine::setupRTVs()
 	texture_desc.MiscFlags = 0;
 
 	//create all necessary textures (normals, position, texture color)
-	for (size_t i = 0; i < this->VIEW_COUNT; i++)
+	for (size_t i = 0; i < this->RTV_VIEW_COUNT; i++)
 	{
-		hResult = this->device->CreateTexture2D(&texture_desc, NULL, &this->RTTextures[i]);
+		hResult = this->device->CreateTexture2D(&texture_desc, NULL, &t_entry);
 		if (FAILED(hResult))
 		{
 			return false;
 		}
+		RTTextures.push_back(t_entry);
 	}
 
 
@@ -117,9 +125,9 @@ bool RenderEngine::setupRTVs()
 	rtv_desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 	rtv_desc.Texture2D.MipSlice = 0; // https://msdn.microsoft.com/en-us/library/windows/desktop/ff476244(v=vs.85).aspx << D3D11_TEX2D_RTV
 
-	for (size_t i = 0; i < this->VIEW_COUNT; i++)
+	for (size_t i = 0; i < this->RTV_VIEW_COUNT; i++)
 	{
-		hResult = this->device->CreateRenderTargetView(this->RTTextures[i], &rtv_desc, &this->RTViews[i]);
+		hResult = this->device->CreateRenderTargetView(RTTextures[i], &rtv_desc, &this->RTViews[i]);
 		if (FAILED(hResult))
 		{
 			return false;
@@ -131,18 +139,22 @@ bool RenderEngine::setupRTVs()
 	ZeroMemory(&srv_desc, sizeof(srv_desc));
 	srv_desc.Format = texture_desc.Format;
 	srv_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	srv_desc.Texture2D.MipLevels = 1; // https://msdn.microsoft.com/en-us/library/windows/desktop/ff476245(v=vs.85).aspx << D3D11_TEX2D_SRV
-	srv_desc.Texture2D.MostDetailedMip = 0;
+	srv_desc.Texture2D.MipLevels = 1; 
 
-	for (size_t i = 0; i < this->VIEW_COUNT; i++)
+	for (size_t i = 0; i < this->RTV_VIEW_COUNT; i++)
 	{
-		hResult = this->device->CreateShaderResourceView(this->RTTextures[i], &srv_desc, &this->SRViews[i]);
+		hResult = this->device->CreateShaderResourceView(RTTextures[i], &srv_desc, &this->SRViews[i]);
 		if (FAILED(hResult))
 		{
 			return false;
 		}
 	}
 
+	//release com objects
+	for (int i = 0; i < this->RTV_VIEW_COUNT; i++)
+	{
+		RTTextures[i]->Release();
+	}
 
 
 	//https://msdn.microsoft.com/en-us/library/windows/desktop/ff476519(v=vs.85).aspx << CreateShaderResourceView
@@ -168,17 +180,13 @@ void RenderEngine::setupVP()
 bool RenderEngine::setupDepthStencilBuffer()
 {
 	//depth descriptions
-	D3D11_TEXTURE2D_DESC depth_texture_desc;
-	D3D11_DEPTH_STENCIL_VIEW_DESC dsv_desc;
-	D3D11_DEPTH_STENCIL_DESC ds_desc;
+
+	ID3D11Texture2D * depthStencil_texture;
 	HRESULT hResult;
 
-
-
 	//stencil operating of frontfacing
-	//https://msdn.microsoft.com/en-us/library/windows/desktop/ff476110(v=vs.85).aspx << D3D11_DEPTH_STENCIL_DESC
+	D3D11_DEPTH_STENCIL_DESC ds_desc;
 	ZeroMemory(&ds_desc, sizeof(ds_desc));
-
 	ds_desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
 	ds_desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
 	ds_desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
@@ -207,12 +215,13 @@ bool RenderEngine::setupDepthStencilBuffer()
 	}
 
 	//create depth texture description, same as the rtv one
+	D3D11_TEXTURE2D_DESC depth_texture_desc;
 	ZeroMemory(&depth_texture_desc, sizeof(depth_texture_desc));
 	depth_texture_desc.Width = this->WIDTH;
 	depth_texture_desc.Height = this->HEIGHT;
-	depth_texture_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depth_texture_desc.Format = DXGI_FORMAT_R32_TYPELESS;
 	depth_texture_desc.Usage = D3D11_USAGE_DEFAULT;
-	depth_texture_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	depth_texture_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE; 
 	depth_texture_desc.MipLevels = 1;
 	depth_texture_desc.ArraySize = 1;
 	depth_texture_desc.CPUAccessFlags = 0;
@@ -220,28 +229,26 @@ bool RenderEngine::setupDepthStencilBuffer()
 	depth_texture_desc.SampleDesc.Count = 1;
 	depth_texture_desc.SampleDesc.Quality = 0;
 
-	hResult = this->device->CreateTexture2D(&depth_texture_desc, NULL, &this->depthStencil_texture);
+	hResult = this->device->CreateTexture2D(&depth_texture_desc, NULL, &depthStencil_texture);
 	if (FAILED(hResult))
 	{
 		return false;
 	}
 
 	//Create view of depthStencil
-	//https://msdn.microsoft.com/en-us/library/windows/desktop/ff476112(v=vs.85).aspx << D3D11_DEPTH_STENCIL_VIEW_DESC
+	D3D11_DEPTH_STENCIL_VIEW_DESC dsv_desc;
 	ZeroMemory(&dsv_desc, sizeof(dsv_desc));
-	dsv_desc.Format = depth_texture_desc.Format;
+	dsv_desc.Format = DXGI_FORMAT_D32_FLOAT;
 	dsv_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	dsv_desc.Texture2D.MipSlice = 0;
 	dsv_desc.Flags = 0;
 
-	hResult = this->device->CreateDepthStencilView(this->depthStencil_texture, &dsv_desc, &this->depthStencilView);
+	hResult = this->device->CreateDepthStencilView(depthStencil_texture, &dsv_desc, &this->depthStencilView);
 	if (FAILED(hResult))
 	{
 		return false;
 	}
 
-	//https://msdn.microsoft.com/en-us/library/windows/desktop/ff476507(v=vs.85).aspx << CreateDepthStencilView
-	//https://msdn.microsoft.com/en-us/library/windows/desktop/ff476521(v=vs.85).aspx << CreateTexture2D
 
 	return true;
 }
@@ -258,13 +265,14 @@ bool RenderEngine::setupRasterizer()
 	ZeroMemory(&rast_desc, sizeof(rast_desc));
 	rast_desc.FillMode = D3D11_FILL_SOLID;
 	rast_desc.AntialiasedLineEnable = FALSE;
-	rast_desc.DepthBias = 0;
+	rast_desc.DepthBias = 16;
 	rast_desc.DepthBiasClamp = 0.0f;
+	rast_desc.SlopeScaledDepthBias = 1.0f;
 	rast_desc.DepthClipEnable = TRUE;
 	rast_desc.FrontCounterClockwise = FALSE;
 	rast_desc.MultisampleEnable = FALSE;
 	rast_desc.ScissorEnable = FALSE;
-	rast_desc.SlopeScaledDepthBias = 0.0f;
+
 
 	if (this->useRastBackCull)
 	{
@@ -309,7 +317,6 @@ bool RenderEngine::createCBs()
 		return false;
 	}
 	//this->deviceContext->VSSetConstantBuffers(0, 1, &this->cb_matrixes);
-	this->deviceContext->GSSetConstantBuffers(0, 1, &this->cb_matrixes);
 
 	//light CB for PS
 	ZeroMemory(&cb_desc, sizeof(cb_desc));
@@ -331,7 +338,6 @@ bool RenderEngine::createCBs()
 	{
 		return false;
 	}
-	this->deviceContext->PSSetConstantBuffers(0, 1, &this->cb_lights);
 	return true;
 }
 
@@ -341,7 +347,6 @@ void RenderEngine::setupOMS()
 	this->deviceContext->OMSetDepthStencilState(this->DSState, 1);
 
 }
-
 
 ObjLoader * RenderEngine::getLoader()
 {
@@ -355,7 +360,56 @@ void RenderEngine::setMatrixes()
 	this->m_wvp.view = this->camera.getView();
 	this->m_wvp.world = XMMatrixIdentity();
 	this->m_wvp.wvp = this->m_wvp.world * this->m_wvp.view * this->m_wvp.projection; // world*view*proj
-	this->m_wvp.vp = this->m_wvp.view * this->m_wvp.projection;
+
+}
+
+void RenderEngine::setShadowStuff()
+{
+	float farZz = 10000.0f;
+	//imagine a sphere incapsulating the scene 0, 0, 0 at centre and a radius of half farZ
+	this->bSphere.centre = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	this->bSphere.radius = farZz;
+	XMFLOAT4 temp = this->lights.getLights().direction;
+	this->lightDir = XMLoadFloat4(&temp);
+
+	//diameter * direction of light yields its position inside this imaginary sphere
+	this->lightPos = 2.0f* this->bSphere.radius * this->lightDir;
+	//this->lightPos = XMVectorSet(6000.0f, 10000.0f, 0.0f, 1.0f);
+
+	//view matrix focal "focus" point is the centre of the sphere
+	this->target = XMLoadFloat3(&bSphere.centre);
+
+	//define up-vector0
+	this->upVec = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+	//create view matrix
+	XMMATRIX view = XMMatrixLookAtLH(this->lightPos, this->target, this->upVec);
+
+	//convert target into light view space
+	XMFLOAT3 SphereCenterLS;
+	XMStoreFloat3(&SphereCenterLS, XMVector3TransformCoord(this->target, view));
+
+	//define values for the orthographic frustum in light view space
+	float left = SphereCenterLS.x - farZz;
+	float right = SphereCenterLS.x + farZz;
+	float top = SphereCenterLS.x + farZz;
+	float bottom = SphereCenterLS.x - farZz;
+	float nearP = SphereCenterLS.x - farZz;
+	float farP = SphereCenterLS.x + farZz;
+
+	XMMATRIX orthoProjection = XMMatrixOrthographicOffCenterLH(left, right, bottom, top, this->nearZ, this->farZ);
+
+	XMMATRIX world = { 0.5f, 0.0f, 0.0f, 0.0f,
+						0.0f, -0.5f, 0.0f, 0.0f,
+						0.0f, 0.0f, 1.0f, 0.0f,
+						0.5f, 0.5f, 0.0f, 1.0f };
+
+	XMMATRIX world2 = XMMatrixScaling(20, 20, 20);
+
+
+	//calculate and bind to cb
+	XMMATRIX viewProjection = view * orthoProjection;
+	this->m_wvp.vpLight = viewProjection;
 }
 
 void RenderEngine::update()
@@ -372,26 +426,15 @@ void RenderEngine::updateMatrixes( const XMMATRIX &in_world)
 	this->m_wvp.world = in_world;
 	this->m_wvp.view = this->camera.getView();
 	this->m_wvp.wvp = this->m_wvp.world * this->m_wvp.view * this->m_wvp.projection; // world*view*proj
-	this->m_wvp.vp = this->m_wvp.view * this->m_wvp.projection;
+	this->m_wvp.inverseWorld = XMMatrixInverse(nullptr, this->m_wvp.world);
 }
 
-void RenderEngine::updateShaders(int in_pass)
+void RenderEngine::updateShaders(ID3D11VertexShader * in_vertexS, ID3D11GeometryShader * in_geometryS, ID3D11PixelShader * in_pixelS)
 {
-	//updates shaders based on current pass
-
-	switch (in_pass)
-	{
-	case RenderEngine::Geometry_pass:
-		this->deviceContext->GSSetShader(this->deferred_shading.getGeoShader(), nullptr, 0);
-		this->deviceContext->VSSetShader(this->deferred_shading.getGeoVS(), nullptr, 0);
-		this->deviceContext->PSSetShader(this->deferred_shading.getGeoPS(), nullptr, 0);
-		break;
-	case RenderEngine::Lightning_pass:
-		this->deviceContext->GSSetShader(nullptr, nullptr, 0);
-		this->deviceContext->VSSetShader(this->deferred_shading.getLightVS(), nullptr, 0);
-		this->deviceContext->PSSetShader(this->deferred_shading.getLightPS(), nullptr, 0);
-		break;
-	}
+	//updates shaders
+	this->deviceContext->VSSetShader(in_vertexS, nullptr, 0);
+	this->deviceContext->GSSetShader(in_geometryS, nullptr, 0);
+	this->deviceContext->PSSetShader(in_pixelS, nullptr, 0);
 }
 
 void RenderEngine::updateBuffers(ID3D11Buffer * in_VertexBuffer, ID3D11Buffer * in_IndexBuffer, float size_of_vertex)
@@ -409,12 +452,13 @@ void RenderEngine::updateBuffers(ID3D11Buffer * in_VertexBuffer, ID3D11Buffer * 
 void RenderEngine::clearRT()
 {
 	//clear the rendertargets before drawing with black
-	for (size_t i = 0; i < this->VIEW_COUNT; i++)
+	for (size_t i = 0; i < 3; i++)
 	{
 		this->deviceContext->ClearRenderTargetView(this->RTViews[i], this->black);
 	}
 	this->deviceContext->ClearRenderTargetView(this->back_buffer_view, this->black);
 	this->deviceContext->ClearDepthStencilView(this->depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
+	this->deviceContext->ClearDepthStencilView(this->sMap.getDepthShadowView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
 }
 
 void RenderEngine::mapCBs()
@@ -426,6 +470,11 @@ void RenderEngine::mapCBs()
 	this->deviceContext->Map(this->cb_matrixes, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	memcpy(mappedResource.pData, &this->m_wvp, sizeof(m_wvp));
 	this->deviceContext->Unmap(this->cb_matrixes, 0);
+
+	ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+	this->deviceContext->Map(this->cb_lights, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+	memcpy(mappedResource.pData, &this->lights.getLights(), sizeof(this->lights.getLights()));
+	this->deviceContext->Unmap(this->cb_lights, 0);
 }
 
 void RenderEngine::layoutTopology(int in_topology, int in_layout)
@@ -460,17 +509,13 @@ void RenderEngine::layoutTopology(int in_topology, int in_layout)
 		break;
 	}
 
-
-
-
-
 	switch (in_layout)
 	{
-	case layout::PN:
+	case layout::PT:
 	{
 		//Pos, Normal
-		this->deviceContext->IASetInputLayout(this->deferred_shading.getPNLayout());
-		this->debugFlag = layout::PN;
+		this->deviceContext->IASetInputLayout(this->deferred_shading.getPTLayout());
+		this->debugFlag = layout::PT;
 		break;
 	}
 
@@ -488,6 +533,10 @@ void RenderEngine::layoutTopology(int in_topology, int in_layout)
 		break;
 	}
 
+	case layout::sMap:
+	{
+		this->deviceContext->IASetInputLayout(this->sMap.getInputLayout());
+	}
 	}
 }
 
@@ -513,9 +562,8 @@ RenderEngine::RenderEngine(HWND handle, HINSTANCE hInstance, int WIDHT, int HEIG
 	ID3D11Texture2D* t_entry = nullptr;
 	ID3D11ShaderResourceView* srv_entry = nullptr;
 	ID3D11RenderTargetView* rtv_entry = nullptr;
-	for (size_t i = 0; i < this->VIEW_COUNT; i++)
+	for (size_t i = 0; i < 3; i++)
 	{
-		this->RTTextures.push_back(t_entry);
 		this->RTViews.push_back(rtv_entry);
 		this->SRViews.push_back(srv_entry);
 	}
@@ -528,14 +576,19 @@ RenderEngine::RenderEngine(HWND handle, HINSTANCE hInstance, int WIDHT, int HEIG
 
 	//setup shaders used for deferred
 	this->deferred_shading.setDevice(this->device);
-	this->deferred_shading.createVertexShaders();
-	this->deferred_shading.createPixelShaders();
-	this->deferred_shading.createGeometryShader();
-
-	this->deviceContext->GSSetShader(this->deferred_shading.getGeoShader(), nullptr, 0);
+	this->deferred_shading.compileVertexShaders();
+	this->deferred_shading.compileGeometryShaders();
+	this->deferred_shading.compilePixelShaders();
 
 	//objloader
 	this->objLoader.setDevice(this->device, this->deviceContext);
+
+	//shadowmap
+	this->sMap.setDevice(this->device);
+	this->sMap.setWidthHeight(this->WIDTH, this->HEIGHT);
+	this->sMap.createShadowShaders();
+	this->sMap.createShadowDepthView();
+	this->SRViews.push_back(this->sMap.getShadowSRV());
 
 	//setup lightpass quad
 	this->quad.setDevice(this->device);
@@ -548,7 +601,11 @@ RenderEngine::RenderEngine(HWND handle, HINSTANCE hInstance, int WIDHT, int HEIG
 	this->black[2] = 0.0f;
 	this->black[3] = 1.0f;
 
+	this->lights.setCamPos(this->camera.getPosition());
+
 	this->setMatrixes();
+	this->setShadowStuff();
+
 }
 
 RenderEngine::~RenderEngine()
@@ -561,39 +618,56 @@ RenderEngine::~RenderEngine()
 	this->swapChain->Release();
 	this->device->Release();
 	this->deviceContext->Release();
-	this->back_buffer_texture->Release();
 	this->back_buffer_view->Release();
-	this->depthStencil_texture->Release();
+	//this->depthStencil_texture->Release();
 	this->depthStencilView->Release();
 	this->cb_lights->Release();
 	this->cb_matrixes->Release();
 
-	for (size_t i = 0; i < this->VIEW_COUNT; i++)
+	for (size_t i = 0; i < this->RTV_VIEW_COUNT; i++)
 	{
 		this->RTViews[i]->Release();
-		this->SRViews[i]->Release();
-		this->RTTextures[i]->Release();
 	}
-
+	for (int i = 0; i < this->SRV_VIEW_COUNT; i++)
+	{
+		this->SRViews[i]->Release();
+	}
 }
 
 void RenderEngine::Draw(Terrain * in_terrain)
 {
 	this->updateMatrixes(in_terrain->getWorldMatrix());
 	this->mapCBs();
-	this->layoutTopology(in_terrain->getTopology(), in_terrain->getLayout());
 	this->updateBuffers(in_terrain->getVertexBuffer(), in_terrain->getIndexBuffer(), in_terrain->getSizeOfVertex());
+	
+	//shadow pass
+	this->deviceContext->VSSetConstantBuffers(0, 1, &this->cb_matrixes);
+	this->updateShaders(this->sMap.getVertexShader(), nullptr, this->sMap.getPixelShader());
+	this->layoutTopology(in_terrain->getTopology(), this->sMap.getLayout());
+	this->shadowPass(in_terrain->getNrOfVertices(), drawType::Indexed);
+
+	//set correct shaders
+	this->layoutTopology(in_terrain->getTopology(), in_terrain->getLayout());
+	this->updateShaders(this->deferred_shading.getGeometryPassVS(), this->deferred_shading.getGeoShader(), this->deferred_shading.getGeometryTerrainPS());
+	this->deviceContext->VSSetConstantBuffers(0, 1, &this->nullBuffer);
+
+	//set texture to sample from
+	this->deviceContext->PSSetShaderResources(0, 2, this->sampTerrainTextures.data());
+
+	//setConstantBuffers
+	this->deviceContext->GSSetConstantBuffers(0, 1, &this->cb_matrixes);
+
+	//no clue why this is has to be BUT IT HAS TO!
+	this->tempState = in_terrain->getSamplerState();
+	this->deviceContext->PSSetSamplers(0, 1, &this->tempState);
+
+	//draw first pass
 	this->geometryPass(in_terrain->getNrOfVertices(), drawType::Indexed);
-
-}
-
-void RenderEngine::Draw(Geometry * in_geometry)
-{
-	this->updateMatrixes(in_geometry->getWorld());
-	this->mapCBs();
-	this->updateBuffers(in_geometry->getVertexBuffer(), in_geometry->getIndexBuffer(), in_geometry->getSizeOfVertex());
-	this->layoutTopology(in_geometry->getTopology(), in_geometry->getLayout());
-	this->geometryPass(in_geometry->getNrOfVertices(), drawType::Indexed);
+	//reset
+	this->deviceContext->PSSetShaderResources(0, 2, this->null2);
+	this->deviceContext->GSSetConstantBuffers(0, 1, &this->nullBuffer);
+	this->tempState = nullptr;
+	this->deviceContext->PSSetSamplers(0, 1, &this->tempState);
 }
 
 void RenderEngine::Draw(Box * in_box)
@@ -601,8 +675,66 @@ void RenderEngine::Draw(Box * in_box)
 	this->updateMatrixes(in_box->getWorldMatrix());
 	this->mapCBs();
 	this->updateBuffers(in_box->getVertexBuffer(), in_box->getIndexBuffer(), in_box->getSizeOfVertex());
+
+
+	//shadow pass
+	this->deviceContext->VSSetConstantBuffers(0, 1, &this->cb_matrixes);
+	this->updateShaders(this->sMap.getVertexShader(), nullptr, this->sMap.getPixelShader());
+	this->layoutTopology(in_box->getTopology(), this->sMap.getLayout());
+	this->shadowPass(in_box->getNrOfVertices(), drawType::NonIndexed);
+
+	//set correct shaders
 	this->layoutTopology(in_box->getTopology(), in_box->getLayout());
+	this->updateShaders(this->deferred_shading.getGeometryPassVS(), this->deferred_shading.getGeoShader(), this->deferred_shading.getGeometryBoxPS());
+	this->deviceContext->VSSetConstantBuffers(0, 1, &this->nullBuffer);
+
+	//set texture to sample from
+	this->deviceContext->PSSetShaderResources(0, 1, &this->sampBoxTexture);
+	
+	//setConstantBuffers
+	this->deviceContext->GSSetConstantBuffers(0, 1, &this->cb_matrixes);
+
+	//draw first pass
 	this->geometryPass(in_box->getNrOfVertices(), drawType::NonIndexed);
+	//reset
+	this->deviceContext->PSSetShaderResources(0, 1, this->null1);
+	this->deviceContext->GSSetConstantBuffers(0, 1, &this->nullBuffer);
+}
+
+void RenderEngine::Draw(Plane * in_plane)
+{
+	this->updateMatrixes(in_plane->getWorldMatrix());
+	this->mapCBs();
+	this->updateBuffers(in_plane->getVertexBuffer(), in_plane->getIndexBuffer(), in_plane->getSizeOfVertex());
+	
+	//shadow pass
+	this->deviceContext->VSSetConstantBuffers(0, 1, &this->cb_matrixes);
+	this->updateShaders(this->sMap.getVertexShader(), nullptr, this->sMap.getPixelShader());
+	this->layoutTopology(in_plane->getTopology(), this->sMap.getLayout());
+	this->shadowPass(in_plane->getNrOfVertices(), drawType::Indexed);
+
+
+	//set correct shaders
+	this->layoutTopology(in_plane->getTopology(), in_plane->getLayout());
+	this->updateShaders(this->deferred_shading.getGeometryPlaneVS(), this->deferred_shading.getGeomtryPlaneGS(), this->deferred_shading.getGeoemtryPlanePS());
+	this->deviceContext->VSSetConstantBuffers(0, 1, &this->nullBuffer);
+
+	//set texture to sample from 1 = stone
+	this->deviceContext->PSSetShaderResources(0, 1, &this->sampTerrainTextures[1]);
+	this->tempState = in_plane->getSamplerState();
+	this->deviceContext->PSSetSamplers(0, 1, &this->tempState);
+
+	//setConstantBuffers
+	this->deviceContext->GSSetConstantBuffers(0, 1, &this->cb_matrixes);
+
+	//draw first pass
+	this->geometryPass(in_plane->getNrOfVertices(), drawType::Indexed);
+	
+	//reset
+	this->deviceContext->GSSetConstantBuffers(0, 1, &this->nullBuffer);
+	this->deviceContext->PSSetShaderResources(0, 1, this->null1);
+	this->tempState = nullptr;
+	this->deviceContext->PSSetSamplers(0, 1, &this->tempState);
 }
 
 ID3D11Device * RenderEngine::getDevice()
@@ -610,9 +742,17 @@ ID3D11Device * RenderEngine::getDevice()
 	return this->device;
 }
 
-void RenderEngine::addSRV(ID3D11ShaderResourceView * in_srv)
+void RenderEngine::addBoxSRV(ID3D11ShaderResourceView * in_srv)
 {
-	this->sampTexture = in_srv;
+	this->sampBoxTexture = in_srv;
+}
+
+void RenderEngine::addTerrainSRV(ID3D11ShaderResourceView ** in_srv, int size)
+{
+	for (int i = 0; i < size; i++)
+	{
+		this->sampTerrainTextures.push_back(in_srv[i]);
+	}
 }
 
 void RenderEngine::clearRenderTargets()
@@ -632,38 +772,30 @@ void RenderEngine::lightPass()
 
 	//****lightpass****\\
 
+	this->deviceContext->PSSetConstantBuffers(0, 1, &this->cb_lights);
+
 	//set backbuffer as new rendertarget
-	this->deviceContext->OMSetRenderTargets(1, &this->back_buffer_view, this->depthStencilView);
+	this->deviceContext->OMSetRenderTargets(1, &this->back_buffer_view, nullptr);
 
 	//Set correct shaders
-	this->updateShaders(RenderEngine::Lightning_pass);
+	this->updateShaders(this->deferred_shading.getLightVS(), nullptr, this->deferred_shading.getLightPS());
 
 	//Update Shader resource with texture views
-	this->deviceContext->PSSetShaderResources(0, this->VIEW_COUNT, this->SRViews.data());
+	this->deviceContext->PSSetShaderResources(0, this->SRV_VIEW_COUNT, this->SRViews.data());
 
 	//draw vertices for fullscreen quad
 	this->setQuad();
 
 	//reset resourceviews, untie SRViews from the shader to be used as rendertargets next frame
-	this->deviceContext->PSSetShaderResources(0, this->VIEW_COUNT, this->null);
+	this->deviceContext->PSSetShaderResources(0, this->SRV_VIEW_COUNT, this->null4);
+	this->deviceContext->PSSetConstantBuffers(0, 1, &this->nullBuffer);
 
-	//this->presentSC();
+
 }
 
-void RenderEngine::geometryPass(int nr_verticies, int drawType)
+void RenderEngine::shadowPass(int nr_verticies, int drawType)
 {
-	//this->clearRenderTargets();
-
-	//****geometry pass****\\
-
-	//set correct shaders
-	this->updateShaders(RenderEngine::Geometry_pass);
-
-	//set g-buffer textures as rendertargets
-	this->deviceContext->OMSetRenderTargets(this->VIEW_COUNT, this->RTViews.data(), this->depthStencilView);
-
-	//set texture to sample from
-	this->deviceContext->PSSetShaderResources(0, 1, &this->sampTexture);
+	this->deviceContext->OMSetRenderTargets(0, 0, this->sMap.getDepthShadowView());
 
 	//draw vertices
 	switch (drawType)
@@ -677,11 +809,36 @@ void RenderEngine::geometryPass(int nr_verticies, int drawType)
 		this->deviceContext->Draw(nr_verticies, 0);
 		break;
 	default:
-
 		exit(-1);
 		break;
 	}
+}
 
+void RenderEngine::geometryPass(int nr_verticies, int drawType)
+{
+	//this->clearRenderTargets();
+
+	//****geometry pass****\\
+
+	//set g-buffer textures as rendertargets
+
+	this->deviceContext->OMSetRenderTargets(this->RTV_VIEW_COUNT, this->RTViews.data(), this->depthStencilView);
+
+	//draw vertices
+	switch (drawType)
+	{
+	case drawType::Indexed:
+
+		this->deviceContext->DrawIndexed(nr_verticies, 0, 0);
+		break;
+	case drawType::NonIndexed:
+
+		this->deviceContext->Draw(nr_verticies, 0);
+		break;
+	default:
+		exit(-1);
+		break;
+	}
 }
 
 

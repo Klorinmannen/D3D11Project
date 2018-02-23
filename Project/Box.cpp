@@ -1,4 +1,21 @@
 #include "Box.h"
+Box::Box()
+{
+	this->vertices = nullptr;
+	this->normals = nullptr;
+	this->uvs = nullptr;
+	this->index = nullptr;
+
+	this->objName = "box.obj";
+	this->picName = L"boxP.png";
+	this->id = -1;
+	this->topology = topology::TriangleList;
+	this->layout = layout::PTN;
+}
+
+Box::~Box()
+{
+}
 
 void Box::buildVertexVec()
 {
@@ -10,8 +27,9 @@ void Box::buildVertexVec()
 		{
 			vertex.v_pos = (*this->vertices)[i];
 			vertex.v_normal = (*this->normals)[i];
-			vertex.uvs.x = (*this->uvs)[i].x;
-			vertex.uvs.y = (*this->uvs)[i].y;
+			vertex.uvs = (*this->uvs)[i];
+
+
 
 			this->vertexVec.push_back(this->vertex);
 		}
@@ -89,24 +107,7 @@ void Box::indexThis()
 	this->uvs; //24st;
 
 
-}
 
-Box::Box()
-{
-	this->vertices = nullptr;
-	this->normals = nullptr;
-	this->uvs = nullptr;
-	this->index = nullptr;
-
-	this->objName = "cube.obj";
-	this->picName = L"boxP.png";
-
-	this->topology = topology::TriangleStrip;
-	this->layout = layout::PTN;
-}
-
-Box::~Box()
-{
 }
 
 void Box::initiate()
@@ -159,6 +160,21 @@ int Box::getNrOfVertices()
 	return this->vertexVec.size();
 }
 
+int Box::getId()
+{
+	return this->id;
+}
+
+void Box::setID(int in_id)
+{
+	this->id = in_id;
+}
+
+void Box::setWorldMatrix(XMMATRIX in_world)
+{
+	this->world = in_world;
+}
+
 ID3D11ShaderResourceView * Box::getSRV()
 {
 	return this->srv;
@@ -166,5 +182,5 @@ ID3D11ShaderResourceView * Box::getSRV()
 
 XMMATRIX Box::getWorldMatrix() const
 {
-	return DirectX::XMMatrixScaling(400, 400, 400) *  DirectX::XMMatrixTranslation(-5000.0f, -1500.0f, -1500.0f);
+	return world;
 }

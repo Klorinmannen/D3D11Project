@@ -26,7 +26,7 @@ bool ObjLoader::paraseObj(std::string & in_obj_name)
 	std::string input = "";
 	file.open(in_obj_name);
 
-	int debugCounter = 0;
+	int debugCounter = -1;
 
 	if (file.bad())
 	{
@@ -81,7 +81,6 @@ bool ObjLoader::paraseObj(std::string & in_obj_name)
 				}
 
 				std::string value = "";
-				int face = 0;
 				int index = 0;
 
 				
@@ -108,6 +107,10 @@ bool ObjLoader::paraseObj(std::string & in_obj_name)
 					}
 				}
 				this->addToVec(index, value);
+				this->face += 4;
+				this->triangulate();
+
+
 			}
 		}
 
@@ -115,8 +118,27 @@ bool ObjLoader::paraseObj(std::string & in_obj_name)
 
 	//build out vectors
 	this->buildOut();
-
+	file.close();
 	return true;
+}
+
+
+void ObjLoader::triangulate()
+{
+	//use the current added vertices, replicate the two first once to create two triangles
+	this->vertice_index.push_back(this->vertice_index[this->face - 4]);
+	this->vertice_index.push_back(this->vertice_index[this->face - 2]);
+
+	//reproduce normals for replicates
+	this->normalIndex.push_back(this->normalIndex[this->face - 4]);
+	this->normalIndex.push_back(this->normalIndex[this->face - 2]);
+
+	//reproduce uvs
+	this->uvIndex.push_back(this->uvIndex[this->face - 4]);
+	this->uvIndex.push_back(this->uvIndex[this->face - 2]);
+
+	//increase nr faces added by two
+	face += 2;
 }
 
 void ObjLoader::addToVec(int index, std::string value)
@@ -133,6 +155,7 @@ void ObjLoader::addToVec(int index, std::string value)
 		this->normalIndex.push_back(stoi(value));
 		break;
 	}
+
 }
 
 void ObjLoader::buildOut()
@@ -168,6 +191,8 @@ void ObjLoader::buildOut()
 		vec3 = this->readVerticesNormal[index - 1];
 		this->out_normal->push_back(vec3);
 	}
+
+
 }
 
 XMFLOAT3 ObjLoader::storeVec(std::string & input, int xyz)
@@ -251,7 +276,7 @@ bool ObjLoader::getSRV(std::wstring & in_texture_name)
 	//open texture file with DirectXToolKit function
 
 	HRESULT hr;
-	hr = CreateWICTextureFromFile(this->device, L"boxP.png", nullptr, &this->readSRV);
+	hr = CreateWICTextureFromFile(this->device, in_texture_name.c_str(), nullptr, &this->readSRV);
 	if (FAILED(hr))
 	{
 		return false;
@@ -281,7 +306,6 @@ void ObjLoader::buildIndex()
 
 }
 
-
 void ObjLoader::release()
 {
 	//delete allocated memory not used
@@ -305,6 +329,8 @@ void ObjLoader::reset()
 	this->uvIndex.clear();
 	this->normalIndex.clear();
 	this->vertice_index.clear();
+
+	this->face = 0;
 }
 
 bool ObjLoader::loadObjFile(std::string & in_obj_name,

@@ -11,13 +11,16 @@ private:
 
 	int topology;
 	int layout;
+	int id;
 
 	struct PTN_Vertex
 	{
 		XMFLOAT3 v_pos;
 		XMFLOAT3 v_normal;
-		XMFLOAT2 uvs;
+		XMFLOAT3 uvs;
 	};
+
+	XMMATRIX world = XMMatrixScaling(20, 20, 20) * XMMatrixTranslation(6400.0f, 3400.0f, 6400.0f);
 
 	std::vector<PTN_Vertex> vertexVec;
 	PTN_Vertex vertex;
@@ -56,6 +59,9 @@ public:
 	int getTopology();
 	int getLayout();
 	int getNrOfVertices();
+	int getId();
+	void setID(int in_id);
+	void setWorldMatrix(XMMATRIX in_world);
 	ID3D11ShaderResourceView * getSRV();
 
 };

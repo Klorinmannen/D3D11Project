@@ -2,14 +2,13 @@
 #include "windows.h"
 #include"ObjLoader.h"
 
-const int HEIGHT = 800;
-const int WIDTH = 800;
+const int WIDTH = 1000;
+const int HEIGHT = 1000;
+
 
 HWND InitWindow(HINSTANCE hInstance);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
-void terrainPreSet(Terrain &terrain, RenderEngine &Engine);
-void boxPreSet(Box &box, RenderEngine &Engine);
 
 
 
@@ -25,10 +24,55 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 	myBox.setLoader(Engine.getLoader());
 	myBox.setDevice(Engine.getDevice());
 	myBox.initiate();
-	Engine.addSRV(myBox.getSRV());
+	Engine.addBoxSRV(myBox.getSRV());
+
+	Box myBox2;
+	myBox2.setLoader(Engine.getLoader());
+	myBox2.setDevice(Engine.getDevice());
+	myBox2.initiate();
+	myBox2.setWorldMatrix(XMMatrixScaling(20, 20, 20) * XMMatrixTranslation(6000.0f, 3400.0f, -12000.0f));
+	Engine.addBoxSRV(myBox2.getSRV());
+
 	Terrain myTerrain(Engine.getDevice());
 	myTerrain.createBuffers();
+	myTerrain.createTexture();
+	myTerrain.createSamplerState();
+	Engine.addTerrainSRV(myTerrain.getSRV(), myTerrain.getNrOfSRVS());
 
+	
+	Plane myPlane;
+	myPlane.setDevice(Engine.getDevice());
+	myPlane.initiate();
+
+	Plane myPlane2;
+	myPlane2.setDevice(Engine.getDevice());
+	myPlane2.initiate();
+
+
+
+	Plane::Vertex vertices[4];
+	vertices->pos = XMFLOAT3(-1.0f, 0.0f, 1.0f);
+	vertices->uvs = XMFLOAT2(0.0f, 0.0f);
+
+	vertices->pos = XMFLOAT3(1.0f, 0.0f, 1.0f);
+	vertices->uvs = XMFLOAT2(1.0f, 0.0f);
+
+	vertices->pos = XMFLOAT3(1.0f, 0.0f, -1.0f);
+	vertices->uvs = XMFLOAT2(1.0f, 1.0f);
+
+	vertices->pos = XMFLOAT3(-1.0f, 0.0f, -1.0f);
+	vertices->uvs = XMFLOAT2(0.0f, 1.0f);
+
+	int index[6];
+	index[0] = 0;
+	index[1] = 1;
+	index[2] = 3;
+	index[3] = 3;
+	index[4] = 1;
+	index[5] = 2;
+
+	myPlane2.setVerticesAndIndex(vertices, index);
+	myPlane2.setWorldMatrix(XMMatrixScaling(6000.0f, 1.0f, 6000.0f) * XMMatrixTranslation(6000.0f, -16000.0f, -6000.0f) * XMMatrixRotationX(XM_PIDIV2));
 
 
 	if (wndHandle)
@@ -50,7 +94,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 				Engine.update();
 				Engine.Draw(&myTerrain);
 				Engine.Draw(&myBox);
-
+				Engine.Draw(&myPlane);
+				Engine.Draw(&myPlane2);
+				Engine.Draw(&myBox2);
 				//draw fullscreen quad and lights
 				Engine.lightPass();
 

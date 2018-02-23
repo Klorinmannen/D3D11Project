@@ -8,7 +8,7 @@ Camera::Camera() {
 	this->camUp = { 0.0f, 1.0f, 0.0f, 0.0f };
 
 	this->camTarget = { 0.0f, 0.0f, 0.0f, 0.0f };
-	this->position = { 0.0f, 0.0f, -2.0f, 0.0f };
+	this->position = { 6000.0f, 4000.0f, 1.0f, 0.0f };
 
 	this->camRotation = DirectX::XMMatrixIdentity();
 	this->camView = DirectX::XMMatrixIdentity();
@@ -53,7 +53,7 @@ void Camera::getInput() {
 	this->mouse->GetDeviceState(sizeof(DIMOUSESTATE), &currentMouseState);
 
 	//Update speed value
-	this->speed = 500.0f * 0.0005f;
+	this->speed = 5000.0f * 0.0005f;
 	bool x = false, z = false;
 
 	//Keyboard input
@@ -212,4 +212,11 @@ DirectX::XMMATRIX Camera::getView(void) const{
 
 	return this->camView;
 
+}
+
+DirectX::XMFLOAT4 Camera::getPosition() const
+{
+	DirectX::XMFLOAT4 floats;
+	DirectX::XMStoreFloat4(&floats, this->position);
+	return floats;
 }

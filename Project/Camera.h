@@ -49,7 +49,7 @@ public:
 
 	//Get
 	DirectX::XMMATRIX getView(void) const;
-
+	DirectX::XMFLOAT4 getPosition() const;
 };
 
 #endif // !CAMERA_H
