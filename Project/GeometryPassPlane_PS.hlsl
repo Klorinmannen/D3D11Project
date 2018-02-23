@@ -1,12 +1,7 @@
 
-Texture2D boxtxt : register(t0);
-SamplerState sampAni;
 
-cbuffer lights
-{
-	float4 wPosition;
-	float4 Color; //w for intensity
-};
+Texture2D stone : register(t0);
+SamplerState samp;
 
 struct ps_input
 {
@@ -20,19 +15,18 @@ struct ps_output
 {
 	float3 Normal : SV_Target0;
 	float4 Position : SV_Target1;
-	float2 BoxTexture : SV_Target2;
+	float3 Texture : SV_Target2;
 };
 
 ps_output PS_Entry(in ps_input input)
 {
 	ps_output output = (ps_output)0;
 
-	float3 reNormalizedWS = saturate(normalize(input.NormalWS));
+	input.NormalWS = normalize(input.NormalWS);
 
-	output.Normal.xz = reNormalizedWS.xz;
-	output.Normal.y = reNormalizedWS.y;
 	output.Position = input.PositionWS;
-	output.BoxTexture = boxtxt.Sample(sampAni, input.uvs);
+	output.Normal = input.NormalWS;
+	output.Texture = stone.Sample(samp, input.uvs).xyz;
 
 	return output;
 }
