@@ -1,11 +1,10 @@
 #include"Terrain.h"
 
-Terrain::Terrain(ID3D11Device * device) : Drawable()
+Terrain::Terrain(ID3D11Device * device)
 {
 	this->device = device;
 	this->nrOfFaces = 0;
 	this->nrOfVertices = 0;
-	this->id = -1;
 
 	CoInitializeEx(NULL, COINIT_MULTITHREADED);
 
@@ -19,7 +18,7 @@ Terrain::Terrain(ID3D11Device * device) : Drawable()
 	this->vBuffer = nullptr;
 	this->iBuffer = nullptr;
 
-	this->t_layout = layout::PTN; //ändra när det är dags
+	this->t_layout = layout::PTN; 
 	this->t_topology = topology::TriangleList;
 	this->loadHeightMap();
 }
@@ -28,13 +27,23 @@ Terrain::~Terrain() {
 
 	if (this->hM.vertexData != nullptr) {
 
-		delete[] this->hM.vertexData;
+		for (int i = 0; i < this->hM.height; i++)
+		{
+			delete this->hM.vertexData[i];
+		}
 
+		delete this->hM.vertexData;
 	}
-	
+
 	this->vBuffer->Release();
 	this->iBuffer->Release();
 
+	for (int i = 0; i < ARRAYSIZE(this->srv); i++)
+	{
+		this->srv[i]->Release();
+	}
+
+	this->sampState->Release();
 }
 
 bool Terrain::loadHeightMap() {
@@ -116,7 +125,7 @@ bool Terrain::loadHeightMap() {
 		bmImage = 0;
 
 	}
-
+	
 	return result;
 }
 
@@ -394,19 +403,9 @@ int Terrain::getLayout()
 	return this->t_layout;
 }
 
-int Terrain::getID()
-{
-	return this->id;
-}
-
 int Terrain::getNrOfSRVS()
 {
 	return this->nrOfSRVS;
-}
-
-void Terrain::setID(int in_id)
-{
-	this->id = in_id;
 }
 
 XMMATRIX Terrain::getWorldMatrix() const

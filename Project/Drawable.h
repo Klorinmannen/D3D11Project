@@ -10,15 +10,16 @@ class Drawable
 {
 public:
 	Drawable();
-	~Drawable();
+	virtual ~Drawable(); //virtual for dynamic_cast
+	bool operator < (const Drawable& other) const;
+
+	void distanceToCam(XMFLOAT4 in_camPos);
+	bool distanceFunc(const Drawable &other) const;
+	float getDistance() const;
 
 protected:
-	virtual ID3D11Buffer* getVertexBuffer() = 0;
-	virtual ID3D11Buffer* getIndexBuffer() = 0;
-	virtual float getSizeOfVertex() = 0;
-	virtual int getTopology() = 0;
-	virtual int getLayout() = 0;
-	virtual int getNrOfVertices() = 0;
+	XMFLOAT4 midPoint;
+	float distance;
 };
 
 #endif // !DRAWABLE_H

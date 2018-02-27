@@ -1,5 +1,5 @@
 #include "Box.h"
-Box::Box()
+Box::Box() : Drawable()
 {
 	this->vertices = nullptr;
 	this->normals = nullptr;
@@ -8,13 +8,23 @@ Box::Box()
 
 	this->objName = "box.obj";
 	this->picName = L"boxP.png";
-	this->id = -1;
 	this->topology = topology::TriangleList;
 	this->layout = layout::PTN;
+
+	this->m_scale = XMMatrixScaling(20, 20, 20);
+	this->m_translation = XMMatrixTranslation(5400.0f, 3400.0f, 6400.0f);
+	this->m_world = this->m_scale * this->m_translation;
 }
 
 Box::~Box()
 {
+	delete this->vertices;
+	delete this->normals;
+	delete this->uvs;
+	delete this->index;
+
+	this->vBuffer->Release();
+	this->srv->Release();
 }
 
 void Box::buildVertexVec()
@@ -61,6 +71,8 @@ void Box::load()
 
 void Box::createBuffers()
 {
+
+	//create vertexbuffer
 	HRESULT hr;
 
 	D3D11_BUFFER_DESC bDesc;
@@ -80,42 +92,54 @@ void Box::createBuffers()
 	data.SysMemSlicePitch = 0;
 
 	hr = this->device->CreateBuffer(&bDesc, &data, &this->vBuffer);
-
-	//D3D11_BUFFER_DESC iDesc;
-	//D3D11_SUBRESOURCE_DATA idata;
-
-	//ZeroMemory(&iDesc, sizeof(iDesc));
-	//ZeroMemory(&idata, sizeof(idata));
-
-	//iDesc.Usage = D3D11_USAGE_DEFAULT;
-	//iDesc.ByteWidth = sizeof(int) * this->index->size();
-	//iDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	//iDesc.CPUAccessFlags = 0;
-	//iDesc.MiscFlags = 0;
-
-	//idata.pSysMem = this->index->data();
-	//idata.SysMemPitch = 0;
-	//idata.SysMemSlicePitch = 0;
-
-	//hr = this->device->CreateBuffer(&iDesc, &idata, &this->iBuffer);
 }
 
-void Box::indexThis()
+void Box::findMidPoint()
 {
-	this->vertices; //24st
-	this->normals; //24st
-	this->uvs; //24st;
+	XMFLOAT3 first = this->vertexVec[0].v_pos;
+	XMFLOAT3 second;
 
+	//find third point with a different z, a box has only two different z values.
+	for (auto var : this->vertexVec)
+	{
+		if (var.v_pos.z != first.z && var.v_pos.x != first.x && var.v_pos.y != first.y)
+		{
+			second = var.v_pos;
+			break;
+		}
+	}
 
+	//find deltas
+	float deltaX = (first.x + second.x) * 0.5;
+	float deltaY = (first.y + second.y) * 0.5;
+	float deltaZ = (first.z + second.z) * 0.5;
 
+	//final midpoint in model-coordinates
+	this->midPoint = XMFLOAT4(deltaX, deltaY, deltaZ, 1.0f);
+
+}
+
+void Box::transformMidPoint()
+{
+	//transform midpoint vector to world coordinates
+	XMVECTOR temp = XMLoadFloat4(&this->midPoint);
+	//Transform
+	temp = XMVector3Transform(temp, this->m_translation);
+	XMStoreFloat4(&this->midPoint, temp);
+}
+
+void Box::update()
+{
+	this->m_world = this->m_scale * this->m_translation;
 }
 
 void Box::initiate()
 {
 	this->load();
 	this->buildVertexVec();
-	this->indexThis();
 	this->createBuffers();
+	this->findMidPoint();
+	this->transformMidPoint();
 }
 
 void Box::setLoader(ObjLoader * in_loader)
@@ -160,19 +184,16 @@ int Box::getNrOfVertices()
 	return this->vertexVec.size();
 }
 
-int Box::getId()
+void Box::setTranslationMatix(XMMATRIX in_trans)
 {
-	return this->id;
+	this->m_translation = in_trans;
+	this->transformMidPoint();
 }
 
-void Box::setID(int in_id)
+void Box::setScaleMatrix(XMMATRIX in_scale)
 {
-	this->id = in_id;
-}
-
-void Box::setWorldMatrix(XMMATRIX in_world)
-{
-	this->world = in_world;
+	this->m_scale = in_scale;
+	this->update();
 }
 
 ID3D11ShaderResourceView * Box::getSRV()
@@ -180,7 +201,12 @@ ID3D11ShaderResourceView * Box::getSRV()
 	return this->srv;
 }
 
+bool Box::operator<(const Box & other) const
+{
+	return this->distance < other.distance;
+}
+
 XMMATRIX Box::getWorldMatrix() const
 {
-	return world;
+	return m_world;
 }

@@ -1,37 +1,67 @@
 #include"RenderEngine.h"
 #include "windows.h"
-#include"ObjLoader.h"
+#include<algorithm>
+#include <stdlib.h>  
+#include <crtdbg.h>
+#define _CRTDBG_MAP_ALLOC
 
-const int WIDTH = 1000;
-const int HEIGHT = 1000;
+const int WIDTH = 1024;
+const int HEIGHT = 1024;
 
 
 HWND InitWindow(HINSTANCE hInstance);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
-
-
+bool compare(const Drawable* lhs, const Drawable* rhs);
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
 {
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+
+
 	MSG msg = { 0 };
 	HWND wndHandle = InitWindow(hInstance);
 
 	RenderEngine Engine(wndHandle, hInstance, WIDTH, HEIGHT);
-	
+	std::vector<Drawable*> objects;
+
 	//Heightmap
 	Box myBox;
 	myBox.setLoader(Engine.getLoader());
 	myBox.setDevice(Engine.getDevice());
 	myBox.initiate();
 	Engine.addBoxSRV(myBox.getSRV());
+	myBox.distanceToCam(Engine.getCamPos());
+	objects.push_back(&myBox);
 
 	Box myBox2;
 	myBox2.setLoader(Engine.getLoader());
 	myBox2.setDevice(Engine.getDevice());
 	myBox2.initiate();
-	myBox2.setWorldMatrix(XMMatrixScaling(20, 20, 20) * XMMatrixTranslation(6000.0f, 3400.0f, -12000.0f));
-	Engine.addBoxSRV(myBox2.getSRV());
+	myBox2.setTranslationMatix(XMMatrixTranslation(6000.0f, 3400.0f, -12000.0f));
+	myBox2.setScaleMatrix(XMMatrixScaling(20, 20, 20));
+	myBox2.distanceToCam(Engine.getCamPos());
+	objects.push_back(&myBox2);
+
+	Box myBox3;
+	myBox3.setLoader(Engine.getLoader());
+	myBox3.setDevice(Engine.getDevice());
+	myBox3.initiate();
+	myBox3.setTranslationMatix(XMMatrixTranslation(6000.0f, 1400.0f, -6000.0f));
+	myBox3.setScaleMatrix(XMMatrixScaling(20, 20, 20));
+	myBox3.distanceToCam(Engine.getCamPos());
+	objects.push_back(&myBox3);
+
+
+	Box myBox4;
+	myBox4.setLoader(Engine.getLoader());
+	myBox4.setDevice(Engine.getDevice());
+	myBox4.initiate();
+	myBox4.setTranslationMatix(XMMatrixTranslation(9000.0f, 6000.0f, -10000.0f));
+	myBox4.setScaleMatrix(XMMatrixScaling(20, 20, 20));
+	myBox4.distanceToCam(Engine.getCamPos());
+	objects.push_back(&myBox4);
+
 
 	Terrain myTerrain(Engine.getDevice());
 	myTerrain.createBuffers();
@@ -43,12 +73,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 	Plane myPlane;
 	myPlane.setDevice(Engine.getDevice());
 	myPlane.initiate();
+	myPlane.distanceToCam(Engine.getCamPos());
+	objects.push_back(&myPlane);
 
 	Plane myPlane2;
 	myPlane2.setDevice(Engine.getDevice());
 	myPlane2.initiate();
-
-
 
 	Plane::Vertex vertices[4];
 	vertices->pos = XMFLOAT3(-1.0f, 0.0f, 1.0f);
@@ -72,8 +102,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 	index[5] = 2;
 
 	myPlane2.setVerticesAndIndex(vertices, index);
-	myPlane2.setWorldMatrix(XMMatrixScaling(6000.0f, 1.0f, 6000.0f) * XMMatrixTranslation(6000.0f, -16000.0f, -6000.0f) * XMMatrixRotationX(XM_PIDIV2));
-
+	myPlane2.setTranslationMatix(XMMatrixTranslation(6000.0f, 6000.0f, -16000.0f));
+	myPlane2.setScaleMatrix(XMMatrixScaling(6000.0f, 1.0f, 6000.0f));
+	myPlane2.setRotationMatrix(XMMatrixRotationX(XM_PIDIV2));
+	myPlane2.distanceToCam(Engine.getCamPos());
+	objects.push_back(&myPlane2);
 
 	if (wndHandle)
 	{
@@ -87,16 +120,35 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 			}
 			else
 			{
+
+				for (auto var : objects)
+				{
+					var->distanceToCam(Engine.getCamPos());
+				}
+
+				Engine.update();
+				//sort objects to render in order front to back
+				std::sort(objects.begin(), objects.end(), &compare);
+
 				//clear renderTargets
 				Engine.clearRenderTargets();
 
 				//draw scene
-				Engine.update();
+
+				for (auto var : objects)
+				{
+					Engine.Draw(var);
+				}
+
 				Engine.Draw(&myTerrain);
-				Engine.Draw(&myBox);
-				Engine.Draw(&myPlane);
-				Engine.Draw(&myPlane2);
-				Engine.Draw(&myBox2);
+				//Engine.Draw(&myTerrain);
+				//Engine.Draw(&myBox);
+				//Engine.Draw(&myPlane);
+				//Engine.Draw(&myPlane2);
+				//Engine.Draw(&myBox2);
+				//Engine.Draw(&myBox3);
+				//Engine.Draw(&myBox4);
+
 				//draw fullscreen quad and lights
 				Engine.lightPass();
 
@@ -159,4 +211,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 
 	return DefWindowProc(hWnd, message, wParam, lParam);
+}
+
+bool compare(const Drawable * lhs, const Drawable * rhs)
+{
+	//predency for std::sort()
+	return lhs->getDistance() < rhs->getDistance();
 }

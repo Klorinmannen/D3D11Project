@@ -18,6 +18,22 @@ ShadowMap::ShadowMap()
 
 ShadowMap::~ShadowMap()
 {
+	if (this->errorBlob != nullptr)
+	{
+		this->errorBlob->Release();
+	}
+
+	this->shadowSRV->Release();
+	this->shadowDepthView->Release();
+	this->shadowShader_VS->Release();
+	this->shadowShader_PS->Release();
+	this->inp_Pos_layout->Release();
+	this->pointSample->Release();
+}
+
+ID3D11SamplerState * ShadowMap::getPointSample()
+{
+	return this->pointSample;
 }
 
 void ShadowMap::createShadowShaders()
@@ -78,7 +94,7 @@ void ShadowMap::createShadowDepthView()
 	ZeroMemory(&dscTexture, sizeof(dscTexture));
 	dscTexture.Width = this->width;
 	dscTexture.Height = this->height;
-	dscTexture.Format = DXGI_FORMAT_R32_TYPELESS;
+	dscTexture.Format = DXGI_FORMAT_R24G8_TYPELESS;
 	dscTexture.Usage = D3D11_USAGE_DEFAULT;
 	dscTexture.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 	dscTexture.MipLevels = 1;
@@ -97,7 +113,7 @@ void ShadowMap::createShadowDepthView()
 	//create DepthStencilView
 	D3D11_DEPTH_STENCIL_VIEW_DESC dscDepthView;
 	ZeroMemory(&dscDepthView, sizeof(dscDepthView));
-	dscDepthView.Format = DXGI_FORMAT_D32_FLOAT;
+	dscDepthView.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	dscDepthView.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	dscDepthView.Texture2D.MipSlice = 0;
 	dscDepthView.Flags = 0;
@@ -110,7 +126,7 @@ void ShadowMap::createShadowDepthView()
 	//create shadow SRV
 	D3D11_SHADER_RESOURCE_VIEW_DESC dscSRV;
 	ZeroMemory(&dscSRV, sizeof(dscSRV));
-	dscSRV.Format = DXGI_FORMAT_R32_FLOAT;
+	dscSRV.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
 	dscSRV.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 	dscSRV.Texture2D.MipLevels = 1;
 	hr = this->device->CreateShaderResourceView(texture, &dscSRV, &this->shadowSRV);
@@ -121,6 +137,21 @@ void ShadowMap::createShadowDepthView()
 
 	//release com object
 	texture->Release();
+}
+
+void ShadowMap::shadowMapSampler()
+{
+	HRESULT hr;
+	D3D11_SAMPLER_DESC sampler_description;
+	sampler_description.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+	sampler_description.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_description.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_description.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_description.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	sampler_description.MipLODBias = 0.0f;
+	sampler_description.MaxAnisotropy = 1;
+
+ 	hr = this->device->CreateSamplerState(&sampler_description, &this->pointSample);
 }
 
 ID3D11DepthStencilView * ShadowMap::getDepthShadowView()

@@ -3,9 +3,10 @@
 void Light::initateLights()
 {
 	//lolbat-deluxe hardcoded colors and positions
-	this->light1.direction = { 0.1f, 1.0f, 0.2f, 0.0f};
-	this->light1.color = { 1.0f, 1.0f, 1.0f, 5.0f };
+	this->light1.direction = { 0.7f, 0.6f, 0.5f, 0.0f};
+	this->light1.color = { 1.0f, 1.0f, 1.0f, 120.0f };
 	this->light1.camPos = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); //some standard value
+	this->light1.lightPos = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); //standard value
 }
 
 Light::Light()
@@ -21,6 +22,11 @@ Light::~Light()
 Light::lights Light::getLights()
 {
 	return this->light1;
+}
+
+void Light::setLightPos(XMFLOAT4 in_pos)
+{
+	this->light1.lightPos = in_pos;
 }
 
 void Light::setCamPos(XMFLOAT4 new_pos)

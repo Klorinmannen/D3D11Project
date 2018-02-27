@@ -1,10 +1,9 @@
 #ifndef PLANE_H
 #define PLANE_H
-#include"IncludeDX11.h"
 #include<vector>
-#include"Settings.h"
+#include"Drawable.h"
 
-class Plane
+class Plane : public Drawable
 {
 public:
 	struct Vertex
@@ -19,7 +18,10 @@ private:
 	int topology;
 	int layout;
 
-	XMMATRIX world = XMMatrixScaling(6000.0f, 1.0f, 6000.0f) * XMMatrixTranslation(6000.0f, 0.0f, -10000.0f);
+	XMMATRIX m_world;
+	XMMATRIX m_translation;
+	XMMATRIX m_scale;
+	XMMATRIX m_rotation;
 
 	ID3D11Device * device;
 	ID3D11Buffer * vBuffer;
@@ -28,6 +30,10 @@ private:
 	void createVertices();
 	void createBuffers();
 	void createSamplerState();
+	void findMidPoint();
+	void transformMidPoint();
+	void update();
+
 public:
 	Plane();
 	~Plane();
@@ -39,12 +45,14 @@ public:
 	void initiate();
 
 	void setVerticesAndIndex(Vertex * in_vertices, int * in_index);
-	void setWorldMatrix(XMMATRIX in_world);
-
+	void setRotationMatrix(XMMATRIX in_rot);
+	void setTranslationMatix(XMMATRIX in_trans);
+	void setScaleMatrix(XMMATRIX in_scale);
 	int getTopology();
 	int getLayout();
 	int getSizeOfVertex();
 	int getNrOfVertices();
+	bool operator < (const Plane &other) const;
 
 };
 #endif // !PLANE_H

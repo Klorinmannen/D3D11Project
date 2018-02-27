@@ -2,14 +2,25 @@
 
 
 
-Plane::Plane()
+Plane::Plane() : Drawable()
 {
 	this->topology = topology::TriangleList;
 	this->layout = layout::PT;
+	this->m_scale = XMMatrixScaling(6000.0f, 1.0f, 6000.0f);
+	this->m_translation = XMMatrixTranslation(6000.0f, 0.0f, -10000.0f);
+	this->m_rotation = XMMatrixIdentity();
+	this->m_world = this->m_scale * this->m_translation;
+	this->device = nullptr;
+	this->vBuffer = nullptr;
+	this->iBuffer = nullptr;
+	this->sampState = nullptr;
 }
 
 Plane::~Plane()
 {
+	this->vBuffer->Release();
+	this->iBuffer->Release();
+	this->sampState->Release();
 }
 
 void Plane::createVertices()
@@ -76,7 +87,6 @@ void Plane::createSamplerState()
 	//Create Desc
 	D3D11_SAMPLER_DESC sampDesc;
 	ZeroMemory(&sampDesc, sizeof(sampDesc));
-
 	//Flags
 	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -91,9 +101,35 @@ void Plane::createSamplerState()
 	device->CreateSamplerState(&sampDesc, &this->sampState);
 }
 
+void Plane::findMidPoint()
+{
+	XMFLOAT3 first = this->vertices[0].pos;
+	XMFLOAT3 second;
+
+	//fint opposite point
+	for (auto var : this->vertices)
+	{
+		if (first.x != var.pos.x && first.z != var.pos.z)
+		{
+			second = var.pos;
+			break;
+		}
+	}
+
+	float deltaX = (first.x + second.x) * 0.5;
+	float deltaZ = (first.z + second.z) * 0.5;
+	this->midPoint = XMFLOAT4(deltaX, first.y, deltaZ, 1.0f);
+	if (deltaX == 0.0f && deltaZ == 0.0f)
+	{
+		this->midPoint = XMFLOAT4(1, 1, 1, 1);
+	}
+
+
+}
+
 XMMATRIX Plane::getWorldMatrix()
 {
-	return this->world;
+	return this->m_world;
 }
 
 ID3D11Buffer * Plane::getVertexBuffer()
@@ -121,6 +157,7 @@ void Plane::initiate()
 	this->createVertices();
 	this->createBuffers();
 	this->createSamplerState();
+	this->findMidPoint();
 }
 
 void Plane::setVerticesAndIndex(Vertex * in_vertices, int * in_index)
@@ -136,11 +173,41 @@ void Plane::setVerticesAndIndex(Vertex * in_vertices, int * in_index)
 	this->index[3] = in_index[3];
 	this->index[4] = in_index[4];
 	this->index[5] = in_index[5];
+
+	this->findMidPoint();
 }
 
-void Plane::setWorldMatrix(XMMATRIX in_world)
+void Plane::setRotationMatrix(XMMATRIX in_rot)
 {
-	this->world = in_world;
+	this->m_rotation = in_rot;
+	this->update();
+}
+
+void Plane::setTranslationMatix(XMMATRIX in_trans)
+{
+	this->m_translation = in_trans;
+	this->transformMidPoint();
+}
+
+void Plane::setScaleMatrix(XMMATRIX in_scale)
+{
+	this->m_scale = in_scale;
+	this->update();
+}
+
+void Plane::transformMidPoint()
+{
+	//transform midpoint vector to world coordinates
+	XMVECTOR temp = XMLoadFloat4(&this->midPoint);
+	//coordinate transformation ignore .w
+	temp = XMVector3Transform(temp, this->m_rotation * this->m_translation);
+	XMStoreFloat4(&this->midPoint, temp);
+}
+
+void Plane::update()
+{
+	this->m_world = this->m_scale * this->m_rotation * this->m_translation;
+
 }
 
 int Plane::getTopology()
@@ -161,4 +228,9 @@ int Plane::getSizeOfVertex()
 int Plane::getNrOfVertices()
 {
 	return ARRAYSIZE(this->index);
+}
+
+bool Plane::operator<(const Plane & other) const
+{
+	return this->distance < other.distance;
 }

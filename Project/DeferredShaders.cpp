@@ -4,12 +4,32 @@ DeferredShaders::DeferredShaders()
 {
 	//set nullptrs
 	//todo:
+	this->error_blob = nullptr;
+	this->shader_blob = nullptr;
+	this->device = nullptr;
 }
 
 DeferredShaders::~DeferredShaders()
 {
 
 	//RELEASE THE KRAKENS(com-objects)
+	if (this->error_blob != nullptr)
+	{
+		this->error_blob->Release();
+	}
+
+	this->GeometryPass_VS->Release();
+	this->LightPass_PS->Release();
+	this->LightPass_VS->Release();
+	this->GeometryPassTerrain_PS->Release();
+	this->GeometryPassBox_PS->Release();
+	this->geometry_Shader->Release();
+	this->GeometryPassPlane_GS->Release();
+	this->GeometryPassPlane_PS->Release();
+	this->GeometryPassPlane_VS->Release();
+	this->inp_Pos_layout->Release();
+	this->inp_PTN_layout->Release();
+	this->inp_PT_layout->Release();
 }
 
 ID3D11VertexShader * DeferredShaders::getGeometryPassVS() const
@@ -70,21 +90,6 @@ ID3D11InputLayout * DeferredShaders::getPosLayout() const
 ID3D11InputLayout * DeferredShaders::getPTNLayout() const
 {
 	return this->inp_PTN_layout;
-}
-
-float DeferredShaders::getPTNSize() const
-{
-	return this->ptn_size;
-}
-
-float DeferredShaders::getPNSize() const
-{
-	return this->pn_size;
-}
-
-float DeferredShaders::getPCSize() const
-{
-	return this->pc_size;
 }
 
 void DeferredShaders::setDevice(ID3D11Device * in_device)

@@ -1,5 +1,43 @@
 #include "Quad.h"
 
+Quad::Quad()
+{
+	//top left 0
+	this->vertices[0].pos = { -1.0f, 1.0f, 0.0f };
+	//top right 1
+	this->vertices[1].pos = { 1.0f, 1.0f, 0.0f };
+	//bottom left 2
+	this->vertices[2].pos = { -1.0f, -1.0f, 0.0f };
+	//bottom right 3
+	this->vertices[3].pos = { 1.0f, -1.0f, 0.0f };
+
+
+	//First triangle clockwise winding
+	this->indexArray[0] = 0;
+	this->indexArray[1] = 1;
+	this->indexArray[2] = 2;
+
+	//Second triangle clockwise winding
+	this->indexArray[3] = 1;
+	this->indexArray[4] = 3;
+	this->indexArray[5] = 2;
+
+	//used settings
+	this->q_topology = topology::TriangleList;
+	this->q_layout = layout::Pos;
+
+	this->q_device = nullptr;
+	this->vBuffer = nullptr;
+	this->iBuffer = nullptr;
+
+}
+
+Quad::~Quad()
+{
+	this->vBuffer->Release();
+	this->iBuffer->Release();
+}
+
 void Quad::createBuffers()
 {
 	this->createIndexBuffer();
@@ -52,39 +90,6 @@ void Quad::createVertexBuffer()
 	vData.pSysMem = this->vertices;
 
 	this->q_device->CreateBuffer(&vDesc, &vData, &this->vBuffer);
-
-}
-
-Quad::Quad()
-{
-	//top left 0
-	this->vertices[0].pos = { -1.0f, 1.0f, 0.0f };
-	//top right 1
-	this->vertices[1].pos = { 1.0f, 1.0f, 0.0f };
-	//bottom left 2
-	this->vertices[2].pos = { -1.0f, -1.0f, 0.0f };
-	//bottom right 3
-	this->vertices[3].pos = { 1.0f, -1.0f, 0.0f };
-
-
-	//First triangle clockwise winding
-	this->indexArray[0] = 0;
-	this->indexArray[1] = 1;
-	this->indexArray[2] = 2;
-
-	//Second triangle clockwise winding
-	this->indexArray[3] = 1;
-	this->indexArray[4] = 3;
-	this->indexArray[5] = 2;
-
-	//used settings
-	this->q_topology = topology::TriangleList;
-	this->q_layout = layout::Pos;
-
-}
-
-Quad::~Quad()
-{
 
 }
 

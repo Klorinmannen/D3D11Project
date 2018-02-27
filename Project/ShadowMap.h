@@ -15,6 +15,8 @@ private:
 	ID3D11VertexShader* shadowShader_VS;
 	ID3D11PixelShader* shadowShader_PS;
 	ID3D11InputLayout* inp_Pos_layout;
+	ID3D11SamplerState* pointSample;
+
 
 	int width;
 	int height;
@@ -23,7 +25,7 @@ private:
 public:
 	ShadowMap();
 	~ShadowMap();
-
+	ID3D11SamplerState * getPointSample();
 	ID3D11DepthStencilView * getDepthShadowView();
 	ID3D11ShaderResourceView * getShadowSRV();
 	ID3D11InputLayout* getInputLayout();
@@ -35,5 +37,6 @@ public:
 	void setDevice(ID3D11Device * in_device);
 	void createShadowShaders();
 	void createShadowDepthView();
+	void shadowMapSampler();
 };
 #endif // !SHADOWMAP_H

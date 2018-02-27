@@ -37,10 +37,6 @@ private:
 	ID3D11InputLayout* inp_Pos_layout;
 	ID3D11InputLayout* inp_PTN_layout;
 	ID3D11InputLayout* inp_PT_layout;
-	float ptn_size;
-	float pn_size;
-	float pc_size;
-
 
 public:
 	DeferredShaders();

@@ -1,14 +1,12 @@
 #ifndef TERRAIN_H
 #define TERRAIN_H
 #include"WICTextureLoader.h"
-#include <DirectXMath.h>
-#include <d3d11.h>
 #include <stdio.h>
 #include <vector>
 #include "Drawable.h"
 
-class Terrain : public Drawable {
-
+class Terrain
+{
 private:
 
 	struct HeightMap {
@@ -27,7 +25,7 @@ private:
 
 	};
 
-	XMMATRIX world = XMMatrixScaling(800.0f, 100.0f, 800.0f) * XMMatrixTranslation(1.0f, 1.0f, 1.0f);
+	XMMATRIX world = XMMatrixTranslation(1.0f, 1.0f, 1.0f) * XMMatrixScaling(1000.0f, 100.0f, 1000.0f);
 
 	float scalingValue;
 	float offsetValue;
@@ -35,7 +33,6 @@ private:
 	HeightMap hM;
 	int nrOfFaces;
 	int nrOfVertices;
-	int id;
 	int t_topology;
 	int t_layout;
 	int valuesPerVertex;
@@ -75,9 +72,7 @@ public:
 	float getSizeOfVertex();
 	int getTopology();
 	int getLayout();
-	int getID();
 	int getNrOfSRVS();
-	void setID(int in_id);
 	XMMATRIX getWorldMatrix() const;
 	ID3D11ShaderResourceView ** getSRV();
 	ID3D11SamplerState* getSamplerState();

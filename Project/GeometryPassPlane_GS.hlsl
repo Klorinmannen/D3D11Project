@@ -20,6 +20,7 @@ struct gs_out
 	float3 NormalWS : NORMALWS;
 	float4 PositionWS : POSITIONWS;
 	float2 uvs : TEXCOORD;
+	float4 lpos : TEXCOORD1;
 };
 
 [maxvertexcount(3)]
@@ -30,21 +31,23 @@ void GS_Entry(in triangle gs_in inp[3], inout TriangleStream<gs_out> Triangles)
 	float epsilon = 0.000001f;
 	float4 posWS[3];
 	float4 posCS[3];
+	float4 posL[3];
 	for (int i = 0; i < 3; i++)
 	{
 		posWS[i] = mul(inp[i].Position, world);
 		posCS[i] = mul(inp[i].Position, wvp);
+		posL[i] = mul(inp[i].Position, mul(world, vpLight));
 	}
 
-	float4 e1 = (posCS[1] - posCS[0]);
-	float4 e2 = (posCS[2] - posCS[0]);
+	float3 e1 = (posCS[1].xyz - posCS[0].xyz);
+	float3 e2 = (posCS[2].xyz - posCS[0].xyz);
 	float3 fNormal = normalize(cross(e1, e2).xyz);
 
 
 	if (fNormal.z < epsilon)
 	{
-		e1 = (posWS[1] - posWS[0]);
-		e2 = (posWS[2] - posWS[0]);
+		e1 = (posWS[1].xyz - posWS[0].xyz);
+		e2 = (posWS[2].xyz - posWS[0].xyz);
 		fNormal = normalize(cross(e1, e2).xyz);
 
 		for (int i = 0; i < 3; i++)
@@ -53,6 +56,7 @@ void GS_Entry(in triangle gs_in inp[3], inout TriangleStream<gs_out> Triangles)
 			outp.NormalWS = fNormal;
 			outp.PositionWS = posWS[i];
 			outp.uvs = inp[i].uvs;
+			outp.lpos = posL[i];
 			Triangles.Append(outp);
 		}
 	}

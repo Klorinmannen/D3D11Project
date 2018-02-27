@@ -3,7 +3,6 @@
 
 #include "ObjLoader.h"
 #include "Drawable.h"
-#include "Settings.h"
 
 class Box : public Drawable
 {
@@ -11,7 +10,6 @@ private:
 
 	int topology;
 	int layout;
-	int id;
 
 	struct PTN_Vertex
 	{
@@ -20,7 +18,9 @@ private:
 		XMFLOAT3 uvs;
 	};
 
-	XMMATRIX world = XMMatrixScaling(20, 20, 20) * XMMatrixTranslation(6400.0f, 3400.0f, 6400.0f);
+	XMMATRIX m_world;
+	XMMATRIX m_translation;
+	XMMATRIX m_scale;
 
 	std::vector<PTN_Vertex> vertexVec;
 	PTN_Vertex vertex;
@@ -45,7 +45,9 @@ private:
 	void buildVertexVec();
 	void load();
 	void createBuffers();
-	void indexThis();
+	void findMidPoint();
+	void transformMidPoint();
+	void update();
 public:
 	Box();
 	~Box();
@@ -59,11 +61,11 @@ public:
 	int getTopology();
 	int getLayout();
 	int getNrOfVertices();
-	int getId();
-	void setID(int in_id);
-	void setWorldMatrix(XMMATRIX in_world);
+	void setTranslationMatix(XMMATRIX in_trans);
+	void setScaleMatrix(XMMATRIX in_scale);
 	ID3D11ShaderResourceView * getSRV();
 
+	bool operator < (const Box &other) const;
 };
 
 

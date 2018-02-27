@@ -14,6 +14,8 @@
 #include "Light.h"
 #include "ObjLoader.h"
 #include "Box.h"
+#include"Drawable.h"
+
 
 /*
 
@@ -31,12 +33,12 @@ private:
 	enum drawType { Indexed, NonIndexed };
 	enum pass { Geometry_pass, Lightning_pass };
 
-	bool useRastBackCull = true;
+	bool useRastBackCull = false;
 	int HEIGHT;
 	int WIDTH;
 	float nearZ = 0.1f;
 	float farZ = 50000.0f;
-	const int RTV_VIEW_COUNT = 3;
+	const int RTV_VIEW_COUNT = 4;
 	const int SRV_VIEW_COUNT = 4;
 
 	//book example
@@ -84,12 +86,15 @@ private:
 	//RT Krakens
 	std::vector<ID3D11RenderTargetView*> RTViews;
 	std::vector<ID3D11ShaderResourceView*> SRViews;
-	ID3D11ShaderResourceView* null4[4] = { nullptr, nullptr, nullptr, nullptr };
+	ID3D11ShaderResourceView* null5[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
 	ID3D11ShaderResourceView* null2[2] = { nullptr, nullptr };
 	ID3D11ShaderResourceView* null1[1] = { nullptr };
 	ID3D11Buffer * nullBuffer = nullptr;
-	ID3D11ShaderResourceView * sampBoxTexture;
+	ID3D11SamplerState * nullSampState = nullptr;
+
+	std::vector<ID3D11ShaderResourceView*> sampBoxTexture;
 	std::vector<ID3D11ShaderResourceView*> sampTerrainTextures;
+
 	ID3D11SamplerState* tempState;
 
 	//backbuffer
@@ -98,7 +103,7 @@ private:
 
 	ID3D11RasterizerState * RSState;
 	ID3D11DepthStencilState * DSState;
-
+	ID3D11ShaderResourceView * depthSRV;
 	ID3D11DepthStencilView * depthStencilView; //1 is shadowview
 	D3D11_VIEWPORT view_port;
 
@@ -140,6 +145,7 @@ public:
 	void Draw(Terrain * in_terrain); // draw called object
 	void Draw(Box* in_box);
 	void Draw(Plane * in_plane);
+	void Draw(Drawable * in_object);
 	ID3D11Device* getDevice();
 	void addBoxSRV(ID3D11ShaderResourceView * in_srv);
 	void addTerrainSRV(ID3D11ShaderResourceView ** in_srv, int size);
@@ -148,6 +154,7 @@ public:
 	void lightPass();
 	void shadowPass(int nr_verticies, int drawType);
 	void geometryPass(int nr_verticies, int drawType);
+	XMFLOAT4 getCamPos();
 };
 
 #endif

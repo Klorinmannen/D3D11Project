@@ -312,12 +312,21 @@ void ObjLoader::release()
 	delete this->out_normal;
 	delete this->out_uvCoords;
 	delete this->out_vertices;
+	if (this->readSRV != nullptr)
+	{
+		this->readSRV->Release();
+	}
+	if (this->texture != nullptr)
+	{
+		this->texture->Release();
+	}
 }
 
 void ObjLoader::reset()
 {
 	//reset ptrs
 	this->readSRV = nullptr;
+	this->texture = nullptr;
 	this->out_vertices = nullptr;
 	this->out_uvCoords = nullptr;
 	this->out_normal = nullptr;
