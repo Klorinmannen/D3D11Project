@@ -38,7 +38,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 	myBox2.setLoader(Engine.getLoader());
 	myBox2.setDevice(Engine.getDevice());
 	myBox2.initiate();
-	myBox2.setTranslationMatix(XMMatrixTranslation(6000.0f, 3400.0f, -12000.0f));
+	myBox2.setTranslationMatix(XMMatrixTranslation(4000.0f, 3400.0f, -11000.0f));
 	myBox2.setScaleMatrix(XMMatrixScaling(20, 20, 20));
 	myBox2.distanceToCam(Engine.getCamPos());
 	objects.push_back(&myBox2);
@@ -81,17 +81,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 	myPlane2.initiate();
 
 	Plane::Vertex vertices[4];
-	vertices->pos = XMFLOAT3(-1.0f, 0.0f, 1.0f);
-	vertices->uvs = XMFLOAT2(0.0f, 0.0f);
+	vertices[0].pos = XMFLOAT3(-1.0f, 0.0f, 1.0f);
+	vertices[0].uvs = XMFLOAT2(0.0f, 0.0f);
 
-	vertices->pos = XMFLOAT3(1.0f, 0.0f, 1.0f);
-	vertices->uvs = XMFLOAT2(1.0f, 0.0f);
+	vertices[1].pos = XMFLOAT3(1.0f, 0.0f, 1.0f);
+	vertices[1].uvs = XMFLOAT2(1.0f, 0.0f);
 
-	vertices->pos = XMFLOAT3(1.0f, 0.0f, -1.0f);
-	vertices->uvs = XMFLOAT2(1.0f, 1.0f);
+	vertices[2].pos = XMFLOAT3(1.0f, 0.0f, -1.0f);
+	vertices[2].uvs = XMFLOAT2(1.0f, 1.0f);
 
-	vertices->pos = XMFLOAT3(-1.0f, 0.0f, -1.0f);
-	vertices->uvs = XMFLOAT2(0.0f, 1.0f);
+	vertices[3].pos = XMFLOAT3(-1.0f, 0.0f, -1.0f);
+	vertices[3].uvs = XMFLOAT2(0.0f, 1.0f);
 
 	int index[6];
 	index[0] = 0;
@@ -107,6 +107,32 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 	myPlane2.setRotationMatrix(XMMatrixRotationX(XM_PIDIV2));
 	myPlane2.distanceToCam(Engine.getCamPos());
 	objects.push_back(&myPlane2);
+
+	Catnip myCat(HEIGHT, WIDTH);
+	myCat.setDevice(Engine.getDevice());
+	myCat.initiate();
+
+	Catnip::vertex verticess[4];
+	verticess[0].pos = XMFLOAT3(-1.0f, 0.0f, 1.0f);
+	verticess[0].uvs = XMFLOAT2(0.0f, 0.0f);
+
+	verticess[1].pos = XMFLOAT3(1.0f, 0.0f, 1.0f);
+	verticess[1].uvs = XMFLOAT2(1.0f, 0.0f);
+
+	verticess[2].pos = XMFLOAT3(1.0f, 0.0f, -1.0f);
+	verticess[2].uvs = XMFLOAT2(1.0f, 1.0f);
+
+	verticess[3].pos = XMFLOAT3(-1.0f, 0.0f, -1.0f);
+	verticess[3].uvs = XMFLOAT2(0.0f, 1.0f);
+	
+	myCat.setIndexAndVertices(index, verticess);
+	myCat.createBuffers();
+	myCat.SetTranslationMatix(XMMatrixTranslation(10000.0f, 2000.0f, -2000.0f));
+	myCat.setScaleMatrix(XMMatrixScaling(1000.0f, 1.0f, 1000.0f));
+	myCat.setRotationMatrix(XMMatrixRotationX(XM_PIDIV2) * XMMatrixRotationZ(XM_PI));
+	myCat.distanceToCam(Engine.getCamPos());
+	//objects.push_back(&myCat);
+
 
 	if (wndHandle)
 	{
@@ -139,8 +165,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 				{
 					Engine.Draw(var);
 				}
-
+				
 				Engine.Draw(&myTerrain);
+				Engine.Draw(&myCat);
 				//Engine.Draw(&myTerrain);
 				//Engine.Draw(&myBox);
 				//Engine.Draw(&myPlane);

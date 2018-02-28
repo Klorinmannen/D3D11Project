@@ -28,12 +28,7 @@ ps_output PS_Entry(in ps_input input)
 	output.Normal = input.NormalWS;
 	output.Position = input.PositionWS;
 	output.Texture = box.Sample(samp, input.uvs).xyz;
-	////bla bla homo homo något
-	//input.lpos.xyz /= input.lpos.w;
 
-	////transform from cs to ts
-	//input.lpos.x = input.lpos.x / 2 + 0.5f;
-	//input.lpos.y = input.lpos.y / 2 + 0.5f;
 	output.lpos = input.lpos;
 	return output;
 }

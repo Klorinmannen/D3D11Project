@@ -464,7 +464,7 @@ void RenderEngine::setShadowStuff()
 {
 	float farZz = 10000;
 	//imagine a sphere incapsulating the scene 0, 0, 0 at centre and a radius of half farZ
-	this->bSphere.centre = XMFLOAT3(6000.0f, 0.0f, -6000.0f);
+	this->bSphere.centre = XMFLOAT3(6000.0f, 0.0f, -2000.0f);
 	this->bSphere.radius = farZz;
 	XMFLOAT4 temp = this->lights.getLights().direction;
 	this->lightDir = XMLoadFloat4(&temp);
@@ -629,6 +629,12 @@ void RenderEngine::layoutTopology(int in_topology, int in_layout)
 	case layout::sMap:
 	{
 		this->deviceContext->IASetInputLayout(this->sMap.getInputLayout());
+		break;
+	}
+	case layout::Cat:
+	{
+		this->deviceContext->IASetInputLayout(this->deferred_shading.getCatPTLayout());
+		break;
 	}
 	}
 }
@@ -745,12 +751,67 @@ void RenderEngine::Draw(Plane * in_plane)
 	this->deviceContext->PSSetSamplers(0, 1, &this->tempState);
 }
 
+void RenderEngine::Draw(Catnip * in_cat)
+{
+	this->updateMatrixes(in_cat->getWorldMatrix());
+	this->mapCBs();
+	this->updateBuffers(in_cat->getVertexBuffer(), in_cat->getIndexBuffer(), in_cat->getSizeOfVertex());
+
+
+	//shadow pass
+	this->deviceContext->VSSetConstantBuffers(0, 1, &this->cb_matrixes);
+	this->updateShaders(this->sMap.getVertexShader(), nullptr, this->sMap.getPixelShader());
+	this->layoutTopology(in_cat->getTopology(), this->sMap.getLayout());
+	this->shadowPass(in_cat->getNrOfVertices(), drawType::Indexed);
+
+	//set correct shaders
+	this->layoutTopology(in_cat->getTopology(), in_cat->getLayout());
+	this->updateShaders(this->deferred_shading.getGeometryPlaneVS(), this->deferred_shading.getGeomtryPlaneGS(), this->deferred_shading.getGeometryCatPS());
+	this->deviceContext->VSSetConstantBuffers(0, 1, &this->nullBuffer);
+
+	//set texture to sample from
+	ID3D11ShaderResourceView * temp = in_cat->getCatSRV();
+	this->deviceContext->PSSetShaderResources(0, 1, &temp);
+
+	//setConstantBuffers
+	this->deviceContext->GSSetConstantBuffers(0, 1, &this->cb_matrixes);
+
+	//draw first pass
+	this->geometryPass(in_cat->getNrOfVertices(), drawType::Indexed);
+
+
+
+	//draw postprocess pass
+	//update shaders
+
+	//something is wrong and nothing happens.. i messed up. ***SOLVED*** SING SING SING
+	//oh how do you do young willy McBride do you mind if i set here down by your graveside and rest for awhile in the warm summer sun, ive been walking all day and im nearly done.
+
+	//remove cbs not used for post process
+	this->deviceContext->GSSetConstantBuffers(0, 1, &this->nullBuffer);
+
+	//bind new cbs
+	this->deviceContext->VSSetConstantBuffers(0, 1, &this->cb_matrixes);
+	this->layoutTopology(topology::TriangleList, layout::Cat);
+	this->updateShaders(this->deferred_shading.getGeometryCatPostVS(), nullptr, this->deferred_shading.getGeometryCatPostPS()); 
+	this->DrawPostProcess(in_cat->getNrOfVertices(), drawType::Indexed);
+
+	//reset
+	this->deviceContext->PSSetShaderResources(0, 1, this->null1);
+	this->deviceContext->VSSetConstantBuffers(0, 1, &this->nullBuffer);
+
+
+
+}
+
 void RenderEngine::Draw(Drawable * in_object)
 {
 	Terrain* t_ptr = nullptr;
 	Box* b_ptr = nullptr;
 	Plane* p_ptr = nullptr;	
+	Catnip* c_ptr = nullptr;
 
+	c_ptr = dynamic_cast<Catnip*>(in_object);
 	t_ptr = dynamic_cast<Terrain*>(in_object);
 	b_ptr = dynamic_cast<Box*>(in_object);
 	p_ptr = dynamic_cast<Plane*>(in_object);
@@ -766,6 +827,10 @@ void RenderEngine::Draw(Drawable * in_object)
 	else if (p_ptr != nullptr)
 	{
 		this->Draw(p_ptr);
+	}
+	else if (c_ptr != nullptr)
+	{
+		this->Draw(c_ptr);
 	}
 }
 
@@ -852,13 +917,32 @@ void RenderEngine::shadowPass(int nr_verticies, int drawType)
 
 void RenderEngine::geometryPass(int nr_verticies, int drawType)
 {
-	//this->clearRenderTargets();
-
-	//****geometry pass****\\
 
 	//set g-buffer textures as rendertargets
 
 	this->deviceContext->OMSetRenderTargets(this->RTViews.size(), this->RTViews.data(), this->depthStencilView);
+
+	//draw vertices
+	switch (drawType)
+	{
+	case drawType::Indexed:
+
+		this->deviceContext->DrawIndexed(nr_verticies, 0, 0);
+		break;
+	case drawType::NonIndexed:
+
+		this->deviceContext->Draw(nr_verticies, 0);
+		break;
+	default:
+		exit(-1);
+		break;
+	}
+	this->deviceContext->OMSetRenderTargets(0, 0, 0);
+}
+
+void RenderEngine::DrawPostProcess(int nr_verticies, int drawType)
+{
+	this->deviceContext->OMSetRenderTargets(1, &this->RTViews[2], nullptr);
 
 	//draw vertices
 	switch (drawType)

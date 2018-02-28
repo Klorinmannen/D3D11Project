@@ -18,6 +18,9 @@ DeferredShaders::~DeferredShaders()
 		this->error_blob->Release();
 	}
 
+	this->GeometryPassCatPost_VS->Release();
+	this->GeometryPassCatPost_PS->Release();
+	this->GeometryPassCat_PS->Release();
 	this->GeometryPass_VS->Release();
 	this->LightPass_PS->Release();
 	this->LightPass_VS->Release();
@@ -30,6 +33,7 @@ DeferredShaders::~DeferredShaders()
 	this->inp_Pos_layout->Release();
 	this->inp_PTN_layout->Release();
 	this->inp_PT_layout->Release();
+	this->inp_CatPT_layout->Release();
 }
 
 ID3D11VertexShader * DeferredShaders::getGeometryPassVS() const
@@ -62,6 +66,21 @@ ID3D11GeometryShader * DeferredShaders::getGeomtryPlaneGS() const
 	return this->GeometryPassPlane_GS;
 }
 
+ID3D11PixelShader * DeferredShaders::getGeometryCatPS() const
+{
+	return this->GeometryPassCat_PS;
+}
+
+ID3D11PixelShader * DeferredShaders::getGeometryCatPostPS() const
+{
+	return this->GeometryPassCatPost_PS;
+}
+
+ID3D11VertexShader * DeferredShaders::getGeometryCatPostVS() const
+{
+	return this->GeometryPassCatPost_VS;
+}
+
 ID3D11VertexShader * DeferredShaders::getLightVS() const
 {
 	return this->LightPass_VS;
@@ -75,6 +94,11 @@ ID3D11PixelShader * DeferredShaders::getLightPS() const
 ID3D11GeometryShader * DeferredShaders::getGeoShader() const
 {
 	return this->geometry_Shader;
+}
+
+ID3D11InputLayout * DeferredShaders::getCatPTLayout() const
+{
+	return this->inp_CatPT_layout;
 }
 
 ID3D11InputLayout * DeferredShaders::getPTLayout() const
@@ -263,6 +287,63 @@ void DeferredShaders::compileVertexShaders()
 
 
 	this->shader_blob->Release();
+
+	hr = D3DCompileFromFile(L"GeometryPassCasPost_VS.hlsl",
+							nullptr,
+							nullptr,
+							"VS_Entry",
+							"vs_5_0",
+							D3DCOMPILE_DEBUG,
+							0,
+							&this->shader_blob,
+							&this->error_blob);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	hr = this->device->CreateVertexShader(	this->shader_blob->GetBufferPointer(),
+											this->shader_blob->GetBufferSize(),
+											NULL,
+											&this->GeometryPassCatPost_VS);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+			D3D11_INPUT_ELEMENT_DESC dscCatPT[] = {
+											{
+												"POSITION",
+												0,
+												DXGI_FORMAT_R32G32B32_FLOAT,
+												0,
+												0,
+												D3D11_INPUT_PER_VERTEX_DATA,
+												0
+											},
+											{
+												"TEXCOORD",
+												0,
+												DXGI_FORMAT_R32G32_FLOAT,
+												0,
+												12,
+												D3D11_INPUT_PER_VERTEX_DATA,
+												0
+											},
+											};
+
+	hr = this->device->CreateInputLayout(dscCatPT, ARRAYSIZE(dscCatPT), this->shader_blob->GetBufferPointer(), this->shader_blob->GetBufferSize(), &this->inp_CatPT_layout);
+
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+
+	this->shader_blob->Release();
 }
 
 void DeferredShaders::compilePixelShaders()
@@ -379,6 +460,62 @@ void DeferredShaders::compilePixelShaders()
 	}
 
 	this->shader_blob->Release();
+
+	//create cat pixel shader
+	hr = D3DCompileFromFile(L"GeometryPassCat_PS.hlsl",
+							nullptr,
+							nullptr,
+							"PS_Entry",
+							"ps_5_0",
+							D3DCOMPILE_DEBUG,
+							0,
+							&this->shader_blob,
+							&this->error_blob);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	hr = this->device->CreatePixelShader(	this->shader_blob->GetBufferPointer(),
+											this->shader_blob->GetBufferSize(),
+											NULL,
+											&this->GeometryPassCat_PS);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	this->shader_blob->Release();
+
+	//create cat postprocess pixel shader
+	hr = D3DCompileFromFile(L"GeometryPassCatPost_PS.hlsl",
+							nullptr,
+							nullptr,
+							"PS_Entry",
+							"ps_5_0",
+							D3DCOMPILE_DEBUG,
+							0,
+							&this->shader_blob,
+							&this->error_blob);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	hr = this->device->CreatePixelShader(	this->shader_blob->GetBufferPointer(),
+											this->shader_blob->GetBufferSize(),
+											NULL,
+											&this->GeometryPassCatPost_PS);
+
+	if (FAILED(hr))
+	{
+		exit(-1);
+	}
+
+	this->shader_blob->Release();
 }
 
 void DeferredShaders::compileGeometryShaders()
@@ -437,4 +574,6 @@ void DeferredShaders::compileGeometryShaders()
 	}
 
 	this->shader_blob->Release();
+
+
 }

@@ -32,11 +32,17 @@ private:
 	ID3D11VertexShader * GeometryPassPlane_VS;
 	ID3D11GeometryShader * GeometryPassPlane_GS;
 
+	ID3D11PixelShader * GeometryPassCat_PS;
+	ID3D11PixelShader * GeometryPassCatPost_PS;
+	ID3D11VertexShader * GeometryPassCatPost_VS;
+
 	//inputLayouts
 	ID3D11InputLayout* inp_PN_layout;
 	ID3D11InputLayout* inp_Pos_layout;
 	ID3D11InputLayout* inp_PTN_layout;
 	ID3D11InputLayout* inp_PT_layout;
+
+	ID3D11InputLayout* inp_CatPT_layout;
 
 public:
 	DeferredShaders();
@@ -50,18 +56,20 @@ public:
 	ID3D11VertexShader* getGeometryPlaneVS() const;
 	ID3D11GeometryShader* getGeomtryPlaneGS() const;
 
+	ID3D11PixelShader* getGeometryCatPS() const;
+	ID3D11PixelShader* getGeometryCatPostPS() const;
+	ID3D11VertexShader * getGeometryCatPostVS() const;
+
 	ID3D11VertexShader* getLightVS() const;
 	ID3D11PixelShader* getLightPS() const;
 
 	ID3D11GeometryShader * getGeoShader() const;
 
+	ID3D11InputLayout* getCatPTLayout() const;
 	ID3D11InputLayout* getPTLayout() const;
 	ID3D11InputLayout* getPosLayout() const;
 	ID3D11InputLayout* getPTNLayout() const;
 	
-	float getPTNSize() const;
-	float getPNSize() const;
-	float getPCSize() const;
 	void setDevice(ID3D11Device * in_device);
 	void compileVertexShaders();
 	void compilePixelShaders();

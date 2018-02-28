@@ -4,7 +4,6 @@
 #include"ShadowMap.h"
 #include"Plane.h"
 #include "Quad.h"
-#include "Geometry.h"
 #include "Terrain.h"
 #include "Settings.h"
 #include "Camera.h"
@@ -15,7 +14,7 @@
 #include "ObjLoader.h"
 #include "Box.h"
 #include"Drawable.h"
-
+#include"Catnip.h"
 
 /*
 
@@ -142,9 +141,11 @@ public:
 
 	ObjLoader * getLoader();
 	void update();
+	void DrawPostProcess(int nr_verticies, int drawType);
 	void Draw(Terrain * in_terrain); // draw called object
 	void Draw(Box* in_box);
 	void Draw(Plane * in_plane);
+	void Draw(Catnip * in_cat);
 	void Draw(Drawable * in_object);
 	ID3D11Device* getDevice();
 	void addBoxSRV(ID3D11ShaderResourceView * in_srv);

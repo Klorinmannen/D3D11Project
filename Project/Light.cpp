@@ -3,7 +3,7 @@
 void Light::initateLights()
 {
 	//lolbat-deluxe hardcoded colors and positions
-	this->light1.direction = { 0.7f, 0.6f, 0.5f, 0.0f};
+	this->light1.direction = { 0.5f, 0.6f, 0.5f, 0.0f};
 	this->light1.color = { 1.0f, 1.0f, 1.0f, 120.0f };
 	this->light1.camPos = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); //some standard value
 	this->light1.lightPos = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); //standard value
